@@ -1,0 +1,23 @@
+- [x] Give people a quick sleep reset score from a short bedtime and wake-time check-in.
+- [x] Show a high-impact result reveal with a clear score, problem summary, and recovery outlook.
+- [x] Turn the result into a paid personalized reset plan with bedtime timing, wind-down steps, and next-morning actions.
+- [x] Use a hard paywall right after the reveal so the full plan is locked until purchase.
+- [x] Offer weekly and yearly subscription options with the yearly plan visually positioned as the best value.
+- [x] Include shareable result cards so the reveal moment can spread naturally.
+- [x] Track the key funnel steps needed for ad optimization: app open, onboarding complete, paywall view, checkout start, and subscription purchase.
+- [x] Premium, calm, Apple-like visual style with dark-night depth, soft glow, and clean typography.
+- [x] Score reveal should feel dramatic and polished, with motion that builds anticipation before the number appears.
+- [x] Cards should feel native and luxurious, using layered surfaces, subtle blur, and strong hierarchy.
+- [x] Keep the app focused and emotionally clear: tired now, clear answer, paid path to feel better fast.
+- [x] Welcome screen with a strong promise around fixing a disrupted sleep schedule fast.
+- [x] Short onboarding flow that frames the user’s sleep struggle, desired outcome, and urgency to improve.
+- [x] Sleep input screen for bedtime, wake time, energy, and recent sleep disruption.
+- [x] Reveal screen with a bold score, category breakdown, and a preview of how bad the mismatch is.
+- [x] Paywall screen immediately after the reveal with premium plan benefits, pricing, and one primary continue button.
+- [x] Plan screen for subscribers showing tonight’s reset time, wind-down checklist, and tomorrow recovery steps.
+- [x] Progress screen showing streaks, recent scores, and visible improvement over time.
+- [x] Settings screen for subscription access, reminders, privacy, and support.
+- [x] Build the app around one simple viral moment: a fast sleep reset score reveal that is easy to screen-record and understand in seconds.
+- [x] Make the first-time experience ad-friendly by getting to the reveal quickly with minimal friction.
+- [x] Structure the funnel so ad traffic can be measured cleanly from install through subscription purchase.
+- [x] Keep the messaging outcome-focused: reset your sleep, wake up normal again, recover fast.
