@@ -4,26 +4,32 @@ struct SleepResetFlowView: View {
     @State private var viewModel: SleepResetViewModel = SleepResetViewModel()
 
     var body: some View {
-        NavigationStack(path: $viewModel.path) {
-            SleepWelcomeView(viewModel: viewModel)
-                .navigationDestination(for: SleepResetStep.self) { step in
-                    switch step {
-                    case .welcome:
-                        SleepWelcomeView(viewModel: viewModel)
-                    case .goals:
-                        SleepGoalsView(viewModel: viewModel)
-                    case .input:
-                        SleepInputView(viewModel: viewModel)
-                    case .analyzing:
-                        SleepAnalyzingView()
-                    case .result:
-                        SleepResultView(viewModel: viewModel)
-                    case .paywall:
-                        SleepPaywallView(viewModel: viewModel)
-                    case .dashboard:
-                        SleepDashboardView(viewModel: viewModel)
-                    }
+        Group {
+            if viewModel.hasUnlockedPlan {
+                SleepDashboardView(viewModel: viewModel)
+            } else {
+                NavigationStack(path: $viewModel.path) {
+                    SleepWelcomeView(viewModel: viewModel)
+                        .navigationDestination(for: SleepResetStep.self) { step in
+                            switch step {
+                            case .welcome:
+                                SleepWelcomeView(viewModel: viewModel)
+                            case .goals:
+                                SleepGoalsView(viewModel: viewModel)
+                            case .input:
+                                SleepInputView(viewModel: viewModel)
+                            case .analyzing:
+                                SleepAnalyzingView()
+                            case .result:
+                                SleepResultView(viewModel: viewModel)
+                            case .paywall:
+                                SleepPaywallView(viewModel: viewModel)
+                            case .dashboard:
+                                SleepDashboardView(viewModel: viewModel)
+                            }
+                        }
                 }
+            }
         }
         .tint(.white)
     }
