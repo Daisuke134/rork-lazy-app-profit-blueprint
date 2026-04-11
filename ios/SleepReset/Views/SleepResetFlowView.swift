@@ -514,9 +514,9 @@ private struct SleepPaywallView: View {
     private var selectedPricingLine: String {
         switch viewModel.selectedProduct {
         case .weekly:
-            "$9.99/week. Cancel anytime in Settings."
+            "$7.99/week. Cancel anytime in Settings."
         case .yearly:
-            "$39.99/year. Best value for long-term consistency."
+            "$49.99/year. Best value for long-term consistency."
         }
     }
 }

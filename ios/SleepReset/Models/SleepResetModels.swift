@@ -51,8 +51,8 @@ nonisolated enum EnergyLevel: String, CaseIterable, Identifiable, Sendable {
 }
 
 nonisolated enum SubscriptionProduct: String, CaseIterable, Identifiable, Sendable {
-    case weekly = "$9.99/week"
-    case yearly = "$39.99/year"
+    case weekly = "$7.99/week"
+    case yearly = "$49.99/year"
 
     var id: String { rawValue }
 
