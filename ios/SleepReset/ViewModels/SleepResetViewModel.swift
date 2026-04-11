@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import RevenueCat
 
 @Observable
 @MainActor
@@ -13,7 +14,11 @@ final class SleepResetViewModel {
     var result: SleepResetResult?
     var plan: ResetPlan?
     var selectedProduct: SubscriptionProduct = .yearly
+    var currentOffering: Offering?
     var isAnalyzing: Bool = false
+    var isLoadingProducts: Bool = false
+    var isPurchasing: Bool = false
+    var paywallErrorMessage: String?
     var hasUnlockedPlan: Bool = false
     var progressPoints: [ProgressPoint] = [
         ProgressPoint(day: "Mon", score: 41),
@@ -28,6 +33,15 @@ final class SleepResetViewModel {
 
     init() {
         analyticsService.track(.appOpen)
+        Task {
+            await refreshSubscriptionState()
+        }
+        Task {
+            await observeCustomerInfo()
+        }
+        Task {
+            await loadOffering()
+        }
     }
 
     func start() {
@@ -91,11 +105,97 @@ final class SleepResetViewModel {
         analyticsService.track(.paywallViewed)
     }
 
-    func purchaseSelectedPlan() {
+    func purchaseSelectedPlan() async {
+        guard let package = selectedPackage else {
+            paywallErrorMessage = "Subscription options are still loading. Please try again in a moment."
+            return
+        }
+
         analyticsService.track(.checkoutStarted, properties: ["product": selectedProduct.title])
-        hasUnlockedPlan = true
-        analyticsService.track(.subscriptionPurchased, properties: ["product": selectedProduct.title])
-        path = [.dashboard]
+        isPurchasing = true
+        defer { isPurchasing = false }
+
+        do {
+            let result = try await Purchases.shared.purchase(package: package)
+            guard !result.userCancelled else {
+                return
+            }
+
+            let isPremium: Bool = result.customerInfo.entitlements["premium"]?.isActive == true
+            hasUnlockedPlan = isPremium
+
+            if isPremium {
+                analyticsService.track(.subscriptionPurchased, properties: ["product": selectedProduct.title])
+                path = [.dashboard]
+            }
+        } catch ErrorCode.purchaseCancelledError {
+            return
+        } catch {
+            paywallErrorMessage = error.localizedDescription
+        }
+    }
+
+    func restorePurchases() async {
+        isPurchasing = true
+        defer { isPurchasing = false }
+
+        do {
+            let customerInfo = try await Purchases.shared.restorePurchases()
+            let isPremium: Bool = customerInfo.entitlements["premium"]?.isActive == true
+            hasUnlockedPlan = isPremium
+
+            if isPremium {
+                analyticsService.track(.subscriptionPurchased, properties: ["product": "restored"])
+                path = [.dashboard]
+            } else {
+                paywallErrorMessage = "No active subscription was found to restore."
+            }
+        } catch {
+            paywallErrorMessage = error.localizedDescription
+        }
+    }
+
+    func loadOffering() async {
+        isLoadingProducts = true
+        defer { isLoadingProducts = false }
+
+        do {
+            let offerings = try await Purchases.shared.offerings()
+            currentOffering = offerings.current
+        } catch {
+            paywallErrorMessage = error.localizedDescription
+        }
+    }
+
+    func refreshSubscriptionState() async {
+        do {
+            let customerInfo = try await Purchases.shared.customerInfo()
+            hasUnlockedPlan = customerInfo.entitlements["premium"]?.isActive == true
+            if hasUnlockedPlan {
+                path = [.dashboard]
+            }
+        } catch {
+            paywallErrorMessage = error.localizedDescription
+        }
+    }
+
+    func clearPaywallError() {
+        paywallErrorMessage = nil
+    }
+
+    private func observeCustomerInfo() async {
+        for await customerInfo in Purchases.shared.customerInfoStream {
+            let isPremium: Bool = customerInfo.entitlements["premium"]?.isActive == true
+            hasUnlockedPlan = isPremium
+
+            if isPremium {
+                path = [.dashboard]
+            }
+        }
+    }
+
+    private var selectedPackage: Package? {
+        currentOffering?.availablePackages.first(where: { $0.storeProduct.productIdentifier == selectedProduct.revenueCatProductID })
     }
 
     func resetFlow() {

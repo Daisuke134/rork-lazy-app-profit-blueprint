@@ -425,35 +425,35 @@ private struct SleepPaywallView: View {
         ZStack {
             SleepBackdropView(variant: .dawn)
 
-            VStack(alignment: .leading, spacing: 18) {
-                Spacer(minLength: 8)
+            VStack(alignment: .leading, spacing: 16) {
+                Spacer(minLength: 6)
 
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: 8) {
                     Text("Unlock your full reset plan")
                         .font(.system(.largeTitle, design: .default, weight: .bold))
                         .foregroundStyle(.white)
 
-                    Text("One subscription. No trial. Full access to your plan, daily guidance, and progress tracking.")
-                        .font(.title3)
+                    Text("No trial. Subscribe once and go straight into tonight's plan, daily guidance, and progress tracking.")
+                        .font(.headline)
                         .foregroundStyle(.white.opacity(0.72))
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
                 SleepTimelineCard(plan: viewModel.plan)
 
-                VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 12) {
                     PaywallBenefitRow(icon: "bed.double.fill", title: "Tonight's plan", subtitle: "See the exact bedtime target and wind-down steps for tonight")
                     PaywallBenefitRow(icon: "sun.max.fill", title: "Morning reset", subtitle: "Open the app tomorrow and follow your wake guidance")
                     PaywallBenefitRow(icon: "chart.line.uptrend.xyaxis", title: "Progress tracking", subtitle: "Keep your rhythm steady and see your score improve")
                 }
-                .padding(20)
+                .padding(18)
                 .background(.white.opacity(0.08), in: .rect(cornerRadius: 28))
                 .overlay {
                     RoundedRectangle(cornerRadius: 28)
                         .strokeBorder(.white.opacity(0.12), lineWidth: 1)
                 }
 
-                VStack(spacing: 12) {
+                VStack(spacing: 10) {
                     ForEach(SubscriptionProduct.allCases) { product in
                         SubscriptionOptionCard(
                             product: product,
@@ -470,18 +470,32 @@ private struct SleepPaywallView: View {
                     .frame(maxWidth: .infinity, alignment: .center)
                     .multilineTextAlignment(.center)
 
-                Button("Continue") {
-                    viewModel.purchaseSelectedPlan()
+                Button {
+                    Task {
+                        await viewModel.purchaseSelectedPlan()
+                    }
+                } label: {
+                    HStack(spacing: 10) {
+                        if viewModel.isPurchasing {
+                            ProgressView()
+                                .tint(.black.opacity(0.72))
+                        }
+                        Text(viewModel.isPurchasing ? "Processing..." : "Continue")
+                    }
                 }
                 .buttonStyle(SleepAccentButtonStyle())
+                .disabled(viewModel.isPurchasing || viewModel.isLoadingProducts)
 
                 Button("Restore Purchases") {
+                    Task {
+                        await viewModel.restorePurchases()
+                    }
                 }
                 .buttonStyle(.plain)
                 .font(.footnote)
                 .foregroundStyle(.white.opacity(0.68))
                 .frame(maxWidth: .infinity)
-                .padding(.top, 2)
+                .disabled(viewModel.isPurchasing)
             }
             .padding(.horizontal, 22)
             .padding(.top, 12)
@@ -489,6 +503,25 @@ private struct SleepPaywallView: View {
         }
         .toolbar(.hidden, for: .navigationBar)
         .navigationBarBackButtonHidden(true)
+        .task {
+            if viewModel.currentOffering == nil {
+                await viewModel.loadOffering()
+            }
+        }
+        .alert("Subscription Error", isPresented: Binding(
+            get: { viewModel.paywallErrorMessage != nil },
+            set: { isPresented in
+                if !isPresented {
+                    viewModel.clearPaywallError()
+                }
+            }
+        )) {
+            Button("OK") {
+                viewModel.clearPaywallError()
+            }
+        } message: {
+            Text(viewModel.paywallErrorMessage ?? "")
+        }
     }
 
     private var selectedPricingLine: String {
@@ -918,7 +951,12 @@ private struct SleepSettingsView: View {
 
                 Section("Support") {
                     LabeledContent("Privacy", value: "Sleep data stays on-device")
-                    LabeledContent("Restore purchases", value: "RevenueCat products are configured")
+
+                    Button("Restore Purchases") {
+                        Task {
+                            await viewModel.restorePurchases()
+                        }
+                    }
                 }
 
                 Section {
