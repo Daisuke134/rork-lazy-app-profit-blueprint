@@ -11,7 +11,7 @@
 - [x] Keep the app focused and emotionally clear: tired now, clear answer, paid path to feel better fast.
 - [x] Welcome screen with a strong promise around fixing a disrupted sleep schedule fast.
 - [x] Short onboarding flow that frames the user’s sleep struggle, desired outcome, and urgency to improve.
-- [x] Sleep input screen for bedtime, wake time, energy, and recent sleep disruption.
+- [x] Split onboarding into separate one-screen steps for goal, bedtime, wake time, and sleep disruption so no scrolling is needed.
 - [x] Reveal screen with a bold score, category breakdown, and a preview of how bad the mismatch is.
 - [x] Paywall screen immediately after the reveal with premium plan benefits, pricing, and one primary continue button.
 - [x] Plan screen for subscribers showing tonight’s reset time, wind-down checklist, and tomorrow recovery steps.

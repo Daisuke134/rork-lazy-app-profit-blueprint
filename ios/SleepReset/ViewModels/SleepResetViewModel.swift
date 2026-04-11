@@ -5,6 +5,7 @@ import Observation
 @MainActor
 final class SleepResetViewModel {
     var path: [SleepResetStep] = []
+    var selectedGoal: SleepGoal = .improveSleep
     var bedtime: Date = SleepResetViewModel.defaultBedtime
     var wakeTime: Date = SleepResetViewModel.defaultWakeTime
     var energyLevel: EnergyLevel = .low
@@ -35,17 +36,29 @@ final class SleepResetViewModel {
 
     func continueFromGoals() {
         analyticsService.track(.onboardingComplete)
-        path.append(.input)
+        path.append(.bedtime)
+    }
+
+    func continueFromBedtime() {
+        path.append(.wakeTime)
+    }
+
+    func continueFromWakeTime() {
+        path.append(.disruption)
     }
 
     func analyze() async {
         isAnalyzing = true
         analyticsService.track(.scoreStarted)
+        path.append(.analyzing)
 
         do {
             try await Task.sleep(for: .milliseconds(1400))
         } catch {
             isAnalyzing = false
+            if path.last == .analyzing {
+                _ = path.popLast()
+            }
             return
         }
 
@@ -64,11 +77,16 @@ final class SleepResetViewModel {
         self.result = result
         self.plan = plan
         isAnalyzing = false
+
+        if path.last == .analyzing {
+            _ = path.popLast()
+        }
         path.append(.result)
         analyticsService.track(.scoreRevealed, properties: ["score": "\(result.score)"])
     }
 
     func showPaywall() {
+        guard path.last != .paywall else { return }
         path.append(.paywall)
         analyticsService.track(.paywallViewed)
     }
@@ -83,6 +101,13 @@ final class SleepResetViewModel {
     func resetFlow() {
         path = []
         hasUnlockedPlan = false
+        result = nil
+        plan = nil
+        selectedGoal = .improveSleep
+        bedtime = Self.defaultBedtime
+        wakeTime = Self.defaultWakeTime
+        disruption = .lateNights
+        selectedProduct = .yearly
     }
 
     private static var defaultBedtime: Date {

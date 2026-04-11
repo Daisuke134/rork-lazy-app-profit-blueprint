@@ -3,11 +3,48 @@ import Foundation
 nonisolated enum SleepResetStep: Hashable {
     case welcome
     case goals
-    case input
+    case bedtime
+    case wakeTime
+    case disruption
     case analyzing
     case result
     case paywall
     case dashboard
+}
+
+nonisolated enum SleepGoal: String, CaseIterable, Identifiable, Sendable {
+    case improveSleep = "Improve sleep"
+    case fallAsleepFaster = "Fall asleep faster"
+    case calmAnxiousNights = "Calm anxious nights"
+    case wakeWithEnergy = "Wake with energy"
+
+    var id: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .improveSleep:
+            "moon.zzz.fill"
+        case .fallAsleepFaster:
+            "sparkles"
+        case .calmAnxiousNights:
+            "wind"
+        case .wakeWithEnergy:
+            "sun.max.fill"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .improveSleep:
+            "Build a steadier rhythm"
+        case .fallAsleepFaster:
+            "Spend less time lying awake"
+        case .calmAnxiousNights:
+            "Settle your body before bed"
+        case .wakeWithEnergy:
+            "Feel clearer in the morning"
+        }
+    }
 }
 
 nonisolated enum SleepDisruption: String, CaseIterable, Identifiable, Sendable {
@@ -28,6 +65,19 @@ nonisolated enum SleepDisruption: String, CaseIterable, Identifiable, Sendable {
             "Your schedule is fighting your sleep window"
         case .stress:
             "Your system looks wired instead of settled"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .jetLag:
+            "airplane"
+        case .lateNights:
+            "moon.stars.fill"
+        case .shiftWork:
+            "clock.arrow.trianglehead.counterclockwise.rotate.90"
+        case .stress:
+            "waveform.path.ecg"
         }
     }
 }
@@ -68,9 +118,18 @@ nonisolated enum SubscriptionProduct: String, CaseIterable, Identifiable, Sendab
     var subtitle: String {
         switch self {
         case .weekly:
-            "Best for immediate recovery"
+            "Flexible access, billed every week"
         case .yearly:
-            "Best value for staying consistent"
+            "Lowest effective price, billed once yearly"
+        }
+    }
+
+    var revenueCatProductID: String {
+        switch self {
+        case .weekly:
+            "sleepreset_weekly"
+        case .yearly:
+            "sleepreset_yearly"
         }
     }
 }
