@@ -5,7 +5,14 @@ nonisolated struct SleepResetScoringService {
         bedtime: Date,
         wakeTime: Date,
         energyLevel: EnergyLevel,
-        disruption: SleepDisruption
+        disruption: SleepDisruption,
+        chronotype: SleepChronotype,
+        sleepLatency: SleepLatency,
+        nightAwakenings: NightAwakenings,
+        consistency: SleepConsistency,
+        weekendDrift: WeekendDrift,
+        eveningState: EveningState,
+        motivation: MotivationLevel
     ) -> SleepResetResult {
         let calendar: Calendar = Calendar.current
         let bedtimeHour: Int = calendar.component(.hour, from: bedtime)
@@ -34,13 +41,48 @@ nonisolated struct SleepResetScoringService {
             disruptionPenalty = 10
         }
 
-        let rawScore: Int = 84 - bedtimeDrift - durationPenalty - disruptionPenalty + energyLevel.scoreModifier
+        let chronotypeModifier: Int
+        switch chronotype {
+        case .earlyBird:
+            chronotypeModifier = bedtimeHour < 23 ? 4 : -4
+        case .balanced:
+            chronotypeModifier = 2
+        case .nightOwl:
+            chronotypeModifier = bedtimeHour >= 23 ? 2 : -4
+        case .allOver:
+            chronotypeModifier = -8
+        }
+
+        let motivationModifier: Int
+        switch motivation {
+        case .justCurious:
+            motivationModifier = 0
+        case .ready:
+            motivationModifier = 2
+        case .veryCommitted:
+            motivationModifier = 4
+        case .desperate:
+            motivationModifier = -3
+        }
+
+        let rawScore: Int = 82
+            - bedtimeDrift
+            - durationPenalty
+            - disruptionPenalty
+            + energyLevel.scoreModifier
+            + sleepLatency.scoreModifier
+            + nightAwakenings.scoreModifier
+            + consistency.scoreModifier
+            + weekendDrift.scoreModifier
+            + eveningState.scoreModifier
+            + chronotypeModifier
+            + motivationModifier
         let score: Int = min(max(rawScore, 24), 96)
 
         let pillars: [ScorePillar] = [
-            ScorePillar(id: "timing", title: "Timing", value: min(max(100 - bedtimeDrift * 2, 18), 98), icon: "moon.zzz.fill"),
-            ScorePillar(id: "duration", title: "Duration", value: min(max(100 - durationPenalty * 2, 20), 98), icon: "bed.double.fill"),
-            ScorePillar(id: "recovery", title: "Recovery", value: min(max(score + 6, 20), 98), icon: "sun.max.fill")
+            ScorePillar(id: "timing", title: "Timing", value: min(max(100 - bedtimeDrift * 2 + consistency.scoreModifier + weekendDrift.scoreModifier, 18), 98), icon: "moon.zzz.fill"),
+            ScorePillar(id: "duration", title: "Depth", value: min(max(100 - durationPenalty * 2 + sleepLatency.scoreModifier + nightAwakenings.scoreModifier, 20), 98), icon: "bed.double.fill"),
+            ScorePillar(id: "recovery", title: "Recovery", value: min(max(score + energyLevel.scoreModifier / 2 + motivationModifier, 20), 98), icon: "sun.max.fill")
         ]
 
         let title: String
@@ -50,16 +92,16 @@ nonisolated struct SleepResetScoringService {
         switch score {
         case ..<45:
             title = "Your schedule needs a hard reset"
-            summary = "Your sleep window is out of sync, which usually shows up as foggy mornings and heavy afternoons."
-            recoveryOutlook = "A focused two-night reset can start pulling your rhythm back quickly."
+            summary = "Your sleep rhythm looks fragmented, which usually shows up as foggy mornings, heavy evenings, and a body that never fully settles."
+            recoveryOutlook = "A tighter wind-down and a cleaner wake anchor can start pulling things back within the next two nights."
         case ..<65:
             title = "You are close, but still off rhythm"
-            summary = "Your sleep is landing, but the timing mismatch is still stealing energy and making mornings sticky."
-            recoveryOutlook = "A tighter bedtime target should lift tomorrow morning noticeably."
+            summary = "You have enough structure to recover, but timing drift, activation at night, or broken sleep are still stealing a lot of energy."
+            recoveryOutlook = "A more deliberate evening routine should make tomorrow feel noticeably smoother."
         default:
             title = "Your rhythm is recoverable fast"
-            summary = "You already have enough structure to rebound, but your sleep timing still needs sharper consistency."
-            recoveryOutlook = "A clean reset tonight should help you wake up steadier tomorrow."
+            summary = "The foundation is there. You mostly need sharper consistency and a calmer runway into sleep so your system can lock back in."
+            recoveryOutlook = "A clean reset tonight should help you wake up steadier tomorrow and keep momentum through the week."
         }
 
         return SleepResetResult(
@@ -74,7 +116,9 @@ nonisolated struct SleepResetScoringService {
     func plan(
         bedtime: Date,
         wakeTime: Date,
-        disruption: SleepDisruption
+        disruption: SleepDisruption,
+        windDownStyle: WindDownStyle,
+        eveningState: EveningState
     ) -> ResetPlan {
         let bedtimeTarget: String = formattedTime(from: Calendar.current.date(byAdding: .minute, value: -35, to: bedtime) ?? bedtime)
         let wakeTarget: String = formattedTime(from: wakeTime)
@@ -91,11 +135,36 @@ nonisolated struct SleepResetScoringService {
             firstStep = ResetPlanSection(id: "decompress", title: "Drop your activation", subtitle: "Use a 10-minute brain dump and slow breathing before bed to lower alertness.", icon: "wind")
         }
 
+        let windDownStep: ResetPlanSection
+        switch windDownStyle {
+        case .breathwork:
+            windDownStep = ResetPlanSection(id: "breathwork", title: "Lead with breathwork", subtitle: "Use your guided breathing session 20 minutes before bed to lower physical tension.", icon: "wind")
+        case .reading:
+            windDownStep = ResetPlanSection(id: "reading", title: "Switch to low-stimulation reading", subtitle: "Trade scrolling for 10 quiet minutes of reading so your mind can narrow its focus.", icon: "book.closed.fill")
+        case .stretching:
+            windDownStep = ResetPlanSection(id: "stretching", title: "Downshift with light movement", subtitle: "A short stretch helps tell your body the workday is over.", icon: "figure.cooldown")
+        case .nothing:
+            windDownStep = ResetPlanSection(id: "ritual", title: "Add a real wind-down", subtitle: "Right now you go straight from life into bed, so even a tiny ritual will make a visible difference.", icon: "sparkles")
+        }
+
+        let eveningStep: ResetPlanSection
+        switch eveningState {
+        case .calm:
+            eveningStep = ResetPlanSection(id: "protect", title: "Protect the calm", subtitle: "Keep the last 30 minutes dim, quiet, and low-friction so you stay settled.", icon: "leaf.fill")
+        case .mentallyBusy:
+            eveningStep = ResetPlanSection(id: "minddump", title: "Clear the mental tabs", subtitle: "Do a quick brain dump before bed so your thoughts stop looping once the lights are off.", icon: "brain.head.profile")
+        case .overstimulated:
+            eveningStep = ResetPlanSection(id: "declutter", title: "Reduce stimulation fast", subtitle: "Step away from fast-moving content and bright screens earlier than you think you need to.", icon: "sparkles")
+        case .stressed:
+            eveningStep = ResetPlanSection(id: "downregulate", title: "Calm the nervous system", subtitle: "Aim for slower exhales, lower lighting, and less decision-making during the final hour.", icon: "waveform.path.ecg")
+        }
+
         let sections: [ResetPlanSection] = [
             ResetPlanSection(id: "bedtime", title: "Be in bed by \(bedtimeTarget)", subtitle: "This is your fastest route back to a stable wake-up tomorrow.", icon: "bed.double.circle.fill"),
             firstStep,
-            ResetPlanSection(id: "wake", title: "Protect \(wakeTarget)", subtitle: "Wake at the same time tomorrow even if tonight is imperfect.", icon: "alarm.fill"),
-            ResetPlanSection(id: "caffeine", title: "Keep afternoon clean", subtitle: "No caffeine after 2 PM if you want tonight to stick.", icon: "cup.and.saucer.fill")
+            windDownStep,
+            eveningStep,
+            ResetPlanSection(id: "wake", title: "Protect \(wakeTarget)", subtitle: "Wake at the same time tomorrow even if tonight is imperfect.", icon: "alarm.fill")
         ]
 
         return ResetPlan(bedtimeTarget: bedtimeTarget, wakeTarget: wakeTarget, sections: sections)

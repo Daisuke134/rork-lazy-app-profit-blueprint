@@ -7,10 +7,18 @@ import RevenueCat
 final class SleepResetViewModel {
     var path: [SleepResetStep] = []
     var selectedGoal: SleepGoal = .improveSleep
+    var chronotype: SleepChronotype = .nightOwl
+    var sleepLatency: SleepLatency = .under30
+    var nightAwakenings: NightAwakenings = .once
+    var consistency: SleepConsistency = .inconsistent
+    var weekendDrift: WeekendDrift = .twoToThree
+    var eveningState: EveningState = .mentallyBusy
+    var windDownStyle: WindDownStyle = .nothing
     var bedtime: Date = SleepResetViewModel.defaultBedtime
     var wakeTime: Date = SleepResetViewModel.defaultWakeTime
     var energyLevel: EnergyLevel = .low
     var disruption: SleepDisruption = .lateNights
+    var motivation: MotivationLevel = .ready
     var result: SleepResetResult?
     var plan: ResetPlan?
     var selectedProduct: SubscriptionProduct = .yearly
@@ -44,12 +52,76 @@ final class SleepResetViewModel {
         }
     }
 
+    var onboardingProgress: CGFloat {
+        CGFloat(currentQuestionIndex + 1) / CGFloat(questionStepCount + 1)
+    }
+
+    var personalizationSummary: String {
+        [
+            selectedGoal.rawValue,
+            chronotype.rawValue,
+            eveningState.rawValue,
+            disruption.rawValue
+        ]
+        .joined(separator: " · ")
+    }
+
+    private var questionStepCount: Int {
+        11
+    }
+
+    private var currentQuestionIndex: Int {
+        switch path.last ?? .welcome {
+        case .goals: 0
+        case .chronotype: 1
+        case .sleepLatency: 2
+        case .nightAwakenings: 3
+        case .consistency: 4
+        case .weekendDrift: 5
+        case .eveningState: 6
+        case .windDownStyle: 7
+        case .bedtime: 8
+        case .wakeTime: 9
+        case .energyLevel: 10
+        case .disruption: 11
+        case .motivation: 12
+        default: 0
+        }
+    }
+
     func start() {
         path = [.goals]
     }
 
     func continueFromGoals() {
-        analyticsService.track(.onboardingComplete)
+        path.append(.chronotype)
+    }
+
+    func continueFromChronotype() {
+        path.append(.sleepLatency)
+    }
+
+    func continueFromSleepLatency() {
+        path.append(.nightAwakenings)
+    }
+
+    func continueFromNightAwakenings() {
+        path.append(.consistency)
+    }
+
+    func continueFromConsistency() {
+        path.append(.weekendDrift)
+    }
+
+    func continueFromWeekendDrift() {
+        path.append(.eveningState)
+    }
+
+    func continueFromEveningState() {
+        path.append(.windDownStyle)
+    }
+
+    func continueFromWindDownStyle() {
         path.append(.bedtime)
     }
 
@@ -58,7 +130,22 @@ final class SleepResetViewModel {
     }
 
     func continueFromWakeTime() {
+        path.append(.energyLevel)
+    }
+
+    func continueFromEnergyLevel() {
         path.append(.disruption)
+    }
+
+    func continueFromDisruption() {
+        path.append(.motivation)
+    }
+
+    func continueFromMotivation() {
+        analyticsService.track(.onboardingComplete)
+        Task {
+            await analyze()
+        }
     }
 
     func analyze() async {
@@ -80,12 +167,21 @@ final class SleepResetViewModel {
             bedtime: bedtime,
             wakeTime: wakeTime,
             energyLevel: energyLevel,
-            disruption: disruption
+            disruption: disruption,
+            chronotype: chronotype,
+            sleepLatency: sleepLatency,
+            nightAwakenings: nightAwakenings,
+            consistency: consistency,
+            weekendDrift: weekendDrift,
+            eveningState: eveningState,
+            motivation: motivation
         )
         let plan: ResetPlan = scoringService.plan(
             bedtime: bedtime,
             wakeTime: wakeTime,
-            disruption: disruption
+            disruption: disruption,
+            windDownStyle: windDownStyle,
+            eveningState: eveningState
         )
 
         self.result = result
@@ -229,9 +325,18 @@ final class SleepResetViewModel {
         result = nil
         plan = nil
         selectedGoal = .improveSleep
+        chronotype = .nightOwl
+        sleepLatency = .under30
+        nightAwakenings = .once
+        consistency = .inconsistent
+        weekendDrift = .twoToThree
+        eveningState = .mentallyBusy
+        windDownStyle = .nothing
         bedtime = Self.defaultBedtime
         wakeTime = Self.defaultWakeTime
+        energyLevel = .low
         disruption = .lateNights
+        motivation = .ready
         selectedProduct = .yearly
     }
 

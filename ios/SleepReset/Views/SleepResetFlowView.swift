@@ -17,14 +17,32 @@ struct SleepResetFlowView: View {
                                 SleepWelcomeView(viewModel: viewModel)
                             case .goals:
                                 SleepGoalsView(viewModel: viewModel)
+                            case .chronotype:
+                                SleepChronotypeView(viewModel: viewModel)
+                            case .sleepLatency:
+                                SleepLatencyView(viewModel: viewModel)
+                            case .nightAwakenings:
+                                SleepNightAwakeningsView(viewModel: viewModel)
+                            case .consistency:
+                                SleepConsistencyView(viewModel: viewModel)
+                            case .weekendDrift:
+                                SleepWeekendDriftView(viewModel: viewModel)
+                            case .eveningState:
+                                SleepEveningStateView(viewModel: viewModel)
+                            case .windDownStyle:
+                                SleepWindDownStyleView(viewModel: viewModel)
                             case .bedtime:
                                 SleepBedtimeView(viewModel: viewModel)
                             case .wakeTime:
                                 SleepWakeTimeView(viewModel: viewModel)
+                            case .energyLevel:
+                                SleepEnergyLevelView(viewModel: viewModel)
                             case .disruption:
                                 SleepDisruptionView(viewModel: viewModel)
+                            case .motivation:
+                                SleepMotivationView(viewModel: viewModel)
                             case .analyzing:
-                                SleepAnalyzingView()
+                                SleepAnalyzingView(viewModel: viewModel)
                             case .result:
                                 SleepResultView(viewModel: viewModel)
                             case .reviewPrompt:
@@ -101,46 +119,231 @@ private struct SleepGoalsView: View {
     @Bindable var viewModel: SleepResetViewModel
 
     var body: some View {
-        ZStack {
-            SleepBackdropView(variant: .harbor)
-
-            VStack(alignment: .leading, spacing: 0) {
-                SleepTopProgressBar(progress: 0.30)
-                    .padding(.top, 8)
-
-                Spacer(minLength: 26)
-
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("What is your primary goal?")
-                        .font(.system(.largeTitle, design: .default, weight: .regular))
-                        .foregroundStyle(.white)
-
-                    Text("Choose the outcome you care about most right now.")
-                        .font(.title3)
-                        .foregroundStyle(.white.opacity(0.68))
-                }
-
-                Spacer(minLength: 24)
-
-                VStack(spacing: 12) {
-                    ForEach(SleepGoal.allCases) { goal in
-                        SleepGoalRow(goal: goal, isSelected: viewModel.selectedGoal == goal) {
-                            viewModel.selectedGoal = goal
-                        }
+        SleepQuestionScreen(
+            viewModel: viewModel,
+            variant: .harbor,
+            title: "What is your primary goal?",
+            subtitle: "We’ll shape your reset around the outcome that matters most to you.",
+            ctaTitle: "Next"
+        ) {
+            VStack(spacing: 12) {
+                ForEach(SleepGoal.allCases) { goal in
+                    SleepChoiceRow(
+                        title: goal.rawValue,
+                        subtitle: goal.subtitle,
+                        icon: goal.icon,
+                        isSelected: viewModel.selectedGoal == goal
+                    ) {
+                        viewModel.selectedGoal = goal
                     }
                 }
-
-                Spacer()
-
-                Button("Next") {
-                    viewModel.continueFromGoals()
-                }
-                .buttonStyle(SleepPrimaryButtonStyle())
             }
-            .padding(.horizontal, 22)
-            .padding(.bottom, 20)
+        } action: {
+            viewModel.continueFromGoals()
         }
-        .toolbar(.hidden, for: .navigationBar)
+    }
+}
+
+private struct SleepChronotypeView: View {
+    @Bindable var viewModel: SleepResetViewModel
+
+    var body: some View {
+        SleepQuestionScreen(
+            viewModel: viewModel,
+            variant: .harbor,
+            title: "Which one sounds most like you?",
+            subtitle: "This helps us match your plan to your natural rhythm instead of fighting it.",
+            ctaTitle: "Next"
+        ) {
+            VStack(spacing: 12) {
+                ForEach(SleepChronotype.allCases) { option in
+                    SleepChoiceRow(
+                        title: option.rawValue,
+                        subtitle: option.subtitle,
+                        icon: option.icon,
+                        isSelected: viewModel.chronotype == option
+                    ) {
+                        viewModel.chronotype = option
+                    }
+                }
+            }
+        } action: {
+            viewModel.continueFromChronotype()
+        }
+    }
+}
+
+private struct SleepLatencyView: View {
+    @Bindable var viewModel: SleepResetViewModel
+
+    var body: some View {
+        SleepQuestionScreen(
+            viewModel: viewModel,
+            variant: .harbor,
+            title: "How long does it usually take you to fall asleep?",
+            subtitle: "Pick the answer that feels true most nights.",
+            ctaTitle: "Next"
+        ) {
+            VStack(spacing: 12) {
+                ForEach(SleepLatency.allCases) { option in
+                    SleepChoiceRow(
+                        title: option.rawValue,
+                        subtitle: option.subtitle,
+                        icon: option.icon,
+                        isSelected: viewModel.sleepLatency == option
+                    ) {
+                        viewModel.sleepLatency = option
+                    }
+                }
+            }
+        } action: {
+            viewModel.continueFromSleepLatency()
+        }
+    }
+}
+
+private struct SleepNightAwakeningsView: View {
+    @Bindable var viewModel: SleepResetViewModel
+
+    var body: some View {
+        SleepQuestionScreen(
+            viewModel: viewModel,
+            variant: .harbor,
+            title: "How often do you wake up during the night?",
+            subtitle: "A more broken night usually needs a calmer, steadier plan.",
+            ctaTitle: "Next"
+        ) {
+            VStack(spacing: 12) {
+                ForEach(NightAwakenings.allCases) { option in
+                    SleepChoiceRow(
+                        title: option.rawValue,
+                        subtitle: option.subtitle,
+                        icon: option.icon,
+                        isSelected: viewModel.nightAwakenings == option
+                    ) {
+                        viewModel.nightAwakenings = option
+                    }
+                }
+            }
+        } action: {
+            viewModel.continueFromNightAwakenings()
+        }
+    }
+}
+
+private struct SleepConsistencyView: View {
+    @Bindable var viewModel: SleepResetViewModel
+
+    var body: some View {
+        SleepQuestionScreen(
+            viewModel: viewModel,
+            variant: .aurora,
+            title: "How consistent is your sleep schedule?",
+            subtitle: "Consistency is one of the fastest ways to recover your rhythm.",
+            ctaTitle: "Next"
+        ) {
+            VStack(spacing: 12) {
+                ForEach(SleepConsistency.allCases) { option in
+                    SleepChoiceRow(
+                        title: option.rawValue,
+                        subtitle: option.subtitle,
+                        icon: option.icon,
+                        isSelected: viewModel.consistency == option
+                    ) {
+                        viewModel.consistency = option
+                    }
+                }
+            }
+        } action: {
+            viewModel.continueFromConsistency()
+        }
+    }
+}
+
+private struct SleepWeekendDriftView: View {
+    @Bindable var viewModel: SleepResetViewModel
+
+    var body: some View {
+        SleepQuestionScreen(
+            viewModel: viewModel,
+            variant: .aurora,
+            title: "How much later do you go to bed or wake up on weekends?",
+            subtitle: "Weekend drift is one of the biggest reasons a reset never fully sticks.",
+            ctaTitle: "Next"
+        ) {
+            VStack(spacing: 12) {
+                ForEach(WeekendDrift.allCases) { option in
+                    SleepChoiceRow(
+                        title: option.rawValue,
+                        subtitle: option.subtitle,
+                        icon: option.icon,
+                        isSelected: viewModel.weekendDrift == option
+                    ) {
+                        viewModel.weekendDrift = option
+                    }
+                }
+            }
+        } action: {
+            viewModel.continueFromWeekendDrift()
+        }
+    }
+}
+
+private struct SleepEveningStateView: View {
+    @Bindable var viewModel: SleepResetViewModel
+
+    var body: some View {
+        SleepQuestionScreen(
+            viewModel: viewModel,
+            variant: .aurora,
+            title: "How do you usually feel in the evening?",
+            subtitle: "We use this to decide whether your plan should calm your mind, your body, or both.",
+            ctaTitle: "Next"
+        ) {
+            VStack(spacing: 12) {
+                ForEach(EveningState.allCases) { option in
+                    SleepChoiceRow(
+                        title: option.rawValue,
+                        subtitle: option.subtitle,
+                        icon: option.icon,
+                        isSelected: viewModel.eveningState == option
+                    ) {
+                        viewModel.eveningState = option
+                    }
+                }
+            }
+        } action: {
+            viewModel.continueFromEveningState()
+        }
+    }
+}
+
+private struct SleepWindDownStyleView: View {
+    @Bindable var viewModel: SleepResetViewModel
+
+    var body: some View {
+        SleepQuestionScreen(
+            viewModel: viewModel,
+            variant: .dawn,
+            title: "What kind of wind-down feels most realistic for you?",
+            subtitle: "We’ll lead with the transition you’re most likely to actually do tonight.",
+            ctaTitle: "Next"
+        ) {
+            VStack(spacing: 12) {
+                ForEach(WindDownStyle.allCases) { option in
+                    SleepChoiceRow(
+                        title: option.rawValue,
+                        subtitle: option.subtitle,
+                        icon: option.icon,
+                        isSelected: viewModel.windDownStyle == option
+                    ) {
+                        viewModel.windDownStyle = option
+                    }
+                }
+            }
+        } action: {
+            viewModel.continueFromWindDownStyle()
+        }
     }
 }
 
@@ -152,7 +355,7 @@ private struct SleepBedtimeView: View {
             SleepBackdropView(variant: .harbor)
 
             VStack(alignment: .leading, spacing: 0) {
-                SleepTopProgressBar(progress: 0.48)
+                SleepTopProgressBar(progress: viewModel.onboardingProgress)
                     .padding(.top, 8)
 
                 Spacer(minLength: 24)
@@ -199,7 +402,7 @@ private struct SleepWakeTimeView: View {
             SleepBackdropView(variant: .harbor)
 
             VStack(alignment: .leading, spacing: 0) {
-                SleepTopProgressBar(progress: 0.66)
+                SleepTopProgressBar(progress: viewModel.onboardingProgress)
                     .padding(.top, 8)
 
                 Spacer(minLength: 24)
@@ -238,6 +441,35 @@ private struct SleepWakeTimeView: View {
     }
 }
 
+private struct SleepEnergyLevelView: View {
+    @Bindable var viewModel: SleepResetViewModel
+
+    var body: some View {
+        SleepQuestionScreen(
+            viewModel: viewModel,
+            variant: .dawn,
+            title: "How is your daytime energy right now?",
+            subtitle: "This helps estimate how hard your current rhythm is pulling on recovery.",
+            ctaTitle: "Next"
+        ) {
+            VStack(spacing: 12) {
+                ForEach(EnergyLevel.allCases) { option in
+                    SleepChoiceRow(
+                        title: option.rawValue,
+                        subtitle: option.subtitle,
+                        icon: option.icon,
+                        isSelected: viewModel.energyLevel == option
+                    ) {
+                        viewModel.energyLevel = option
+                    }
+                }
+            }
+        } action: {
+            viewModel.continueFromEnergyLevel()
+        }
+    }
+}
+
 private struct SleepDisruptionView: View {
     @Bindable var viewModel: SleepResetViewModel
 
@@ -246,7 +478,7 @@ private struct SleepDisruptionView: View {
             SleepBackdropView(variant: .aurora)
 
             VStack(alignment: .leading, spacing: 0) {
-                SleepTopProgressBar(progress: 0.82)
+                SleepTopProgressBar(progress: viewModel.onboardingProgress)
                     .padding(.top, 8)
 
                 Spacer(minLength: 24)
@@ -274,21 +506,10 @@ private struct SleepDisruptionView: View {
 
                 Spacer()
 
-                Button {
-                    Task {
-                        await viewModel.analyze()
-                    }
-                } label: {
-                    HStack(spacing: 10) {
-                        if viewModel.isAnalyzing {
-                            ProgressView()
-                                .tint(Color.black.opacity(0.75))
-                        }
-                        Text(viewModel.isAnalyzing ? "Customizing..." : "See My Score")
-                    }
+                Button("Next") {
+                    viewModel.continueFromDisruption()
                 }
                 .buttonStyle(SleepPrimaryButtonStyle())
-                .disabled(viewModel.isAnalyzing)
             }
             .padding(.horizontal, 22)
             .padding(.bottom, 20)
@@ -297,7 +518,37 @@ private struct SleepDisruptionView: View {
     }
 }
 
+private struct SleepMotivationView: View {
+    @Bindable var viewModel: SleepResetViewModel
+
+    var body: some View {
+        SleepQuestionScreen(
+            viewModel: viewModel,
+            variant: .dawn,
+            title: "How committed are you to resetting this right now?",
+            subtitle: "The more urgent this feels, the more direct we can make your plan.",
+            ctaTitle: viewModel.isAnalyzing ? "Customizing..." : "See My Score"
+        ) {
+            VStack(spacing: 12) {
+                ForEach(MotivationLevel.allCases) { option in
+                    SleepChoiceRow(
+                        title: option.rawValue,
+                        subtitle: option.subtitle,
+                        icon: option.icon,
+                        isSelected: viewModel.motivation == option
+                    ) {
+                        viewModel.motivation = option
+                    }
+                }
+            }
+        } action: {
+            viewModel.continueFromMotivation()
+        }
+    }
+}
+
 private struct SleepAnalyzingView: View {
+    let viewModel: SleepResetViewModel
     @State private var pulseOpacity: Double = 0.42
 
     var body: some View {
@@ -307,9 +558,17 @@ private struct SleepAnalyzingView: View {
             VStack {
                 Spacer()
 
-                Text("Customizing...")
-                    .font(.system(.title, design: .default, weight: .regular))
-                    .foregroundStyle(.white.opacity(pulseOpacity))
+                VStack(spacing: 14) {
+                    Text("Customizing your reset")
+                        .font(.system(.title, design: .default, weight: .regular))
+                        .foregroundStyle(.white.opacity(pulseOpacity))
+
+                    Text(viewModel.personalizationSummary)
+                        .font(.subheadline)
+                        .foregroundStyle(.white.opacity(0.58))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 28)
+                }
 
                 Spacer()
             }
@@ -977,6 +1236,53 @@ private struct SleepSettingsView: View {
     }
 }
 
+private struct SleepQuestionScreen<Content: View>: View {
+    let viewModel: SleepResetViewModel
+    let variant: SleepBackdropVariant
+    let title: String
+    let subtitle: String
+    let ctaTitle: String
+    @ViewBuilder let content: Content
+    let action: () -> Void
+
+    var body: some View {
+        ZStack {
+            SleepBackdropView(variant: variant)
+
+            VStack(alignment: .leading, spacing: 0) {
+                SleepTopProgressBar(progress: viewModel.onboardingProgress)
+                    .padding(.top, 8)
+
+                Spacer(minLength: 24)
+
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(title)
+                        .font(.system(.largeTitle, design: .default, weight: .regular))
+                        .foregroundStyle(.white)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text(subtitle)
+                        .font(.title3)
+                        .foregroundStyle(.white.opacity(0.68))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer(minLength: 24)
+
+                content
+
+                Spacer()
+
+                Button(ctaTitle, action: action)
+                    .buttonStyle(SleepPrimaryButtonStyle())
+            }
+            .padding(.horizontal, 22)
+            .padding(.bottom, 20)
+        }
+        .toolbar(.hidden, for: .navigationBar)
+    }
+}
+
 private struct SleepTopProgressBar: View {
     let progress: CGFloat
 
@@ -994,27 +1300,30 @@ private struct SleepTopProgressBar: View {
     }
 }
 
-private struct SleepGoalRow: View {
-    let goal: SleepGoal
+private struct SleepChoiceRow: View {
+    let title: String
+    let subtitle: String
+    let icon: String
     let isSelected: Bool
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: 14) {
-                Image(systemName: goal.icon)
+                Image(systemName: icon)
                     .font(.title3)
                     .foregroundStyle(.white)
                     .frame(width: 44, height: 44)
                     .background(.white.opacity(isSelected ? 0.18 : 0.08), in: .circle)
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(goal.rawValue)
+                    Text(title)
                         .font(.headline)
                         .foregroundStyle(.white)
-                    Text(goal.subtitle)
+                    Text(subtitle)
                         .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.58))
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
                 Spacer()
@@ -1040,37 +1349,13 @@ private struct SleepDisruptionRow: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: 14) {
-                Image(systemName: disruption.icon)
-                    .font(.title3)
-                    .foregroundStyle(.white)
-                    .frame(width: 44, height: 44)
-                    .background(.white.opacity(isSelected ? 0.18 : 0.08), in: .circle)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(disruption.rawValue)
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                    Text(disruption.headline)
-                        .font(.subheadline)
-                        .foregroundStyle(.white.opacity(0.58))
-                }
-
-                Spacer()
-
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.title3)
-                    .foregroundStyle(.white)
-            }
-            .padding(18)
-            .background(isSelected ? .white.opacity(0.16) : .white.opacity(0.08), in: .rect(cornerRadius: 24))
-            .overlay {
-                RoundedRectangle(cornerRadius: 24)
-                    .strokeBorder(.white.opacity(isSelected ? 0.24 : 0.12), lineWidth: 1)
-            }
-        }
-        .buttonStyle(.plain)
+        SleepChoiceRow(
+            title: disruption.rawValue,
+            subtitle: disruption.headline,
+            icon: disruption.icon,
+            isSelected: isSelected,
+            action: action
+        )
     }
 }
 
