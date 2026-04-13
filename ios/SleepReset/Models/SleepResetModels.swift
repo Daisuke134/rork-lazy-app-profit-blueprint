@@ -523,8 +523,48 @@ nonisolated struct ResetPlan: Hashable, Sendable {
     let sections: [ResetPlanSection]
 }
 
+nonisolated struct BreathworkSession: Identifiable, Codable, Hashable, Sendable {
+    let id: UUID
+    let completedAt: Date
+    let completedCycles: Int
+    let totalCycles: Int
+    let durationSeconds: Int
+}
+
+nonisolated struct ProgressDay: Identifiable, Hashable, Sendable {
+    let id: Date
+    let date: Date
+    let label: String
+    let didComplete: Bool
+    let sessionCount: Int
+}
+
 nonisolated struct ProgressPoint: Identifiable, Hashable, Sendable {
     let id: UUID = UUID()
     let day: String
     let score: Int
+}
+
+nonisolated struct BreathworkInsight: Hashable, Sendable {
+    let currentStreak: Int
+    let longestStreak: Int
+    let completedDaysThisWeek: Int
+    let totalSessions: Int
+    let totalMinutes: Int
+    let completedToday: Bool
+    let recentDays: [ProgressDay]
+}
+
+nonisolated enum OnboardingQuestion: Hashable, Sendable {
+    case goal
+    case chronotype
+    case sleepLatency
+    case nightAwakenings
+    case consistency
+    case weekendDrift
+    case eveningState
+    case windDownStyle
+    case energyLevel
+    case disruption
+    case motivation
 }

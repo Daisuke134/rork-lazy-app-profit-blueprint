@@ -124,7 +124,8 @@ private struct SleepGoalsView: View {
             variant: .harbor,
             title: "What is your primary goal?",
             subtitle: "We’ll shape your reset around the outcome that matters most to you.",
-            ctaTitle: "Next"
+            ctaTitle: "Next",
+            isCTAEnabled: viewModel.selectedGoal != nil
         ) {
             VStack(spacing: 12) {
                 ForEach(SleepGoal.allCases) { goal in
@@ -153,7 +154,8 @@ private struct SleepChronotypeView: View {
             variant: .harbor,
             title: "Which one sounds most like you?",
             subtitle: "This helps us match your plan to your natural rhythm instead of fighting it.",
-            ctaTitle: "Next"
+            ctaTitle: "Next",
+            isCTAEnabled: viewModel.chronotype != nil
         ) {
             VStack(spacing: 12) {
                 ForEach(SleepChronotype.allCases) { option in
@@ -182,7 +184,8 @@ private struct SleepLatencyView: View {
             variant: .harbor,
             title: "How long does it usually take you to fall asleep?",
             subtitle: "Pick the answer that feels true most nights.",
-            ctaTitle: "Next"
+            ctaTitle: "Next",
+            isCTAEnabled: viewModel.sleepLatency != nil
         ) {
             VStack(spacing: 12) {
                 ForEach(SleepLatency.allCases) { option in
@@ -211,7 +214,8 @@ private struct SleepNightAwakeningsView: View {
             variant: .harbor,
             title: "How often do you wake up during the night?",
             subtitle: "A more broken night usually needs a calmer, steadier plan.",
-            ctaTitle: "Next"
+            ctaTitle: "Next",
+            isCTAEnabled: viewModel.nightAwakenings != nil
         ) {
             VStack(spacing: 12) {
                 ForEach(NightAwakenings.allCases) { option in
@@ -240,7 +244,8 @@ private struct SleepConsistencyView: View {
             variant: .aurora,
             title: "How consistent is your sleep schedule?",
             subtitle: "Consistency is one of the fastest ways to recover your rhythm.",
-            ctaTitle: "Next"
+            ctaTitle: "Next",
+            isCTAEnabled: viewModel.consistency != nil
         ) {
             VStack(spacing: 12) {
                 ForEach(SleepConsistency.allCases) { option in
@@ -269,7 +274,8 @@ private struct SleepWeekendDriftView: View {
             variant: .aurora,
             title: "How much later do you go to bed or wake up on weekends?",
             subtitle: "Weekend drift is one of the biggest reasons a reset never fully sticks.",
-            ctaTitle: "Next"
+            ctaTitle: "Next",
+            isCTAEnabled: viewModel.weekendDrift != nil
         ) {
             VStack(spacing: 12) {
                 ForEach(WeekendDrift.allCases) { option in
@@ -298,7 +304,8 @@ private struct SleepEveningStateView: View {
             variant: .aurora,
             title: "How do you usually feel in the evening?",
             subtitle: "We use this to decide whether your plan should calm your mind, your body, or both.",
-            ctaTitle: "Next"
+            ctaTitle: "Next",
+            isCTAEnabled: viewModel.eveningState != nil
         ) {
             VStack(spacing: 12) {
                 ForEach(EveningState.allCases) { option in
@@ -327,7 +334,8 @@ private struct SleepWindDownStyleView: View {
             variant: .dawn,
             title: "What kind of wind-down feels most realistic for you?",
             subtitle: "We’ll lead with the transition you’re most likely to actually do tonight.",
-            ctaTitle: "Next"
+            ctaTitle: "Next",
+            isCTAEnabled: viewModel.windDownStyle != nil
         ) {
             VStack(spacing: 12) {
                 ForEach(WindDownStyle.allCases) { option in
@@ -450,7 +458,8 @@ private struct SleepEnergyLevelView: View {
             variant: .dawn,
             title: "How is your daytime energy right now?",
             subtitle: "This helps estimate how hard your current rhythm is pulling on recovery.",
-            ctaTitle: "Next"
+            ctaTitle: "Next",
+            isCTAEnabled: viewModel.energyLevel != nil
         ) {
             VStack(spacing: 12) {
                 ForEach(EnergyLevel.allCases) { option in
@@ -510,6 +519,7 @@ private struct SleepDisruptionView: View {
                     viewModel.continueFromDisruption()
                 }
                 .buttonStyle(SleepPrimaryButtonStyle())
+                .disabled(viewModel.disruption == nil)
             }
             .padding(.horizontal, 22)
             .padding(.bottom, 20)
@@ -527,7 +537,8 @@ private struct SleepMotivationView: View {
             variant: .dawn,
             title: "How committed are you to resetting this right now?",
             subtitle: "The more urgent this feels, the more direct we can make your plan.",
-            ctaTitle: viewModel.isAnalyzing ? "Customizing..." : "See My Score"
+            ctaTitle: viewModel.isAnalyzing ? "Customizing..." : "See My Score",
+            isCTAEnabled: viewModel.motivation != nil
         ) {
             VStack(spacing: 12) {
                 ForEach(MotivationLevel.allCases) { option in
@@ -550,15 +561,24 @@ private struct SleepMotivationView: View {
 private struct SleepAnalyzingView: View {
     let viewModel: SleepResetViewModel
     @State private var pulseOpacity: Double = 0.42
+    @State private var displayedProgress: Double = 0
+    @State private var messageIndex: Int = 0
+
+    private let messages: [String] = [
+        "Reading your sleep rhythm",
+        "Building tonight's breathwork focus",
+        "Shaping a calmer bedtime target",
+        "Finalizing your reset plan"
+    ]
 
     var body: some View {
         ZStack {
             SleepBackdropView(variant: .aurora)
 
-            VStack {
+            VStack(spacing: 24) {
                 Spacer()
 
-                VStack(spacing: 14) {
+                VStack(spacing: 18) {
                     Text("Customizing your reset")
                         .font(.system(.title, design: .default, weight: .regular))
                         .foregroundStyle(.white.opacity(pulseOpacity))
@@ -568,6 +588,28 @@ private struct SleepAnalyzingView: View {
                         .foregroundStyle(.white.opacity(0.58))
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 28)
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        ProgressView(value: displayedProgress)
+                            .tint(.white)
+
+                        HStack {
+                            Text(messages[messageIndex])
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(.white)
+                            Spacer()
+                            Text(displayedProgress, format: .percent.precision(.fractionLength(0)))
+                                .font(.subheadline.monospacedDigit())
+                                .foregroundStyle(.white.opacity(0.7))
+                        }
+                    }
+                    .padding(18)
+                    .background(.white.opacity(0.08), in: .rect(cornerRadius: 24))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 24)
+                            .strokeBorder(.white.opacity(0.10), lineWidth: 1)
+                    }
+                    .padding(.horizontal, 28)
                 }
 
                 Spacer()
@@ -576,6 +618,23 @@ private struct SleepAnalyzingView: View {
         .task {
             withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
                 pulseOpacity = 0.9
+            }
+        }
+        .task {
+            for step in 1...28 {
+                guard !Task.isCancelled else { return }
+                do {
+                    try await Task.sleep(for: .milliseconds(100))
+                } catch {
+                    return
+                }
+
+                let progress: Double = min(Double(step) / 28.0, 1)
+                let nextMessageIndex: Int = min(max(Int(progress * Double(messages.count)) - 1, 0), messages.count - 1)
+                withAnimation(.smooth(duration: 0.18)) {
+                    displayedProgress = progress
+                    messageIndex = nextMessageIndex
+                }
             }
         }
         .navigationBarBackButtonHidden(true)
@@ -650,7 +709,7 @@ private struct SleepResultView: View {
                         Text("Main driver")
                             .font(.headline)
                             .foregroundStyle(.white.opacity(0.58))
-                        Text(viewModel.disruption.headline)
+                        Text(viewModel.disruption?.headline ?? "Your reset plan is calibrated around the biggest source of sleep friction right now.")
                             .font(.title3.weight(.medium))
                             .foregroundStyle(.white)
                         Text(result.recoveryOutlook)
@@ -968,6 +1027,8 @@ private struct SleepHomeView: View {
     @State private var isShowingBreathwork: Bool = false
 
     var body: some View {
+        let insight = viewModel.breathworkInsight
+
         NavigationStack {
             ZStack {
                 SleepBackdropView(variant: .slate)
@@ -979,7 +1040,7 @@ private struct SleepHomeView: View {
                                 .font(.system(.largeTitle, design: .default, weight: .bold))
                                 .foregroundStyle(.white)
 
-                            Text("One guided breathwork session to help you settle tonight.")
+                            Text(insight.completedToday ? "You already checked in tonight. Keep the streak alive tomorrow." : "One guided breathwork session to help you settle tonight.")
                                 .font(.headline)
                                 .foregroundStyle(.white.opacity(0.58))
                         }
@@ -1013,10 +1074,10 @@ private struct SleepHomeView: View {
                             VStack(spacing: 10) {
                                 SessionMetricRow(title: "Best for", value: "Winding down before bed")
                                 SessionMetricRow(title: "Breathing pattern", value: "4 · 4 · 6")
-                                SessionMetricRow(title: "Focus", value: "Slower exhale, lower activation")
+                                SessionMetricRow(title: "Current streak", value: "\(insight.currentStreak) day\(insight.currentStreak == 1 ? "" : "s")")
                             }
 
-                            Button("Start Breathwork") {
+                            Button(insight.completedToday ? "Do Another Session" : "Start Breathwork") {
                                 isShowingBreathwork = true
                             }
                             .buttonStyle(SleepPrimaryButtonStyle())
@@ -1026,6 +1087,12 @@ private struct SleepHomeView: View {
                         .overlay {
                             RoundedRectangle(cornerRadius: 30)
                                 .strokeBorder(.white.opacity(0.10), lineWidth: 1)
+                        }
+
+                        HStack(spacing: 12) {
+                            HomeStatCard(title: "Today", value: insight.completedToday ? "Done" : "Open", subtitle: insight.completedToday ? "Breathwork logged" : "No session yet")
+                            HomeStatCard(title: "Streak", value: "\(insight.currentStreak)", subtitle: "days in a row")
+                            HomeStatCard(title: "This week", value: "\(insight.completedDaysThisWeek)/7", subtitle: "days completed")
                         }
 
                         if let plan = viewModel.plan {
@@ -1060,7 +1127,7 @@ private struct SleepHomeView: View {
             .toolbar(.hidden, for: .navigationBar)
         }
         .fullScreenCover(isPresented: $isShowingBreathwork) {
-            BreathworkSessionView(isPresented: $isShowingBreathwork)
+            BreathworkSessionView(isPresented: $isShowingBreathwork, viewModel: viewModel)
         }
     }
 }
@@ -1139,33 +1206,74 @@ private struct SleepProgressView: View {
     let viewModel: SleepResetViewModel
 
     var body: some View {
+        let insight = viewModel.breathworkInsight
+
         NavigationStack {
             ZStack {
                 SleepBackdropView(variant: .slate)
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
-                        Text("Your score is moving in the right direction.")
+                        Text(insight.totalSessions == 0 ? "Finish your first breathwork session and your progress will appear here." : "Your breathwork habit is starting to stack up.")
                             .font(.title2.weight(.semibold))
                             .foregroundStyle(.white)
+
+                        HStack(spacing: 12) {
+                            ProgressSummaryCard(title: "Current streak", value: "\(insight.currentStreak)", subtitle: "days")
+                            ProgressSummaryCard(title: "Best streak", value: "\(insight.longestStreak)", subtitle: "days")
+                            ProgressSummaryCard(title: "Sessions", value: "\(insight.totalSessions)", subtitle: "total")
+                        }
 
                         HStack(alignment: .bottom, spacing: 12) {
                             ForEach(viewModel.progressPoints) { point in
                                 VStack(spacing: 8) {
                                     RoundedRectangle(cornerRadius: 14)
                                         .fill(.white.opacity(0.88))
-                                        .frame(width: 44, height: CGFloat(point.score) * 1.4)
+                                        .frame(width: 38, height: CGFloat(point.score))
                                     Text(point.day)
-                                        .font(.caption)
+                                        .font(.caption2)
                                         .foregroundStyle(.white.opacity(0.55))
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.7)
                                 }
-                                .frame(maxWidth: .infinity)
+                                .frame(maxWidth: .infinity, alignment: .bottom)
                             }
                         }
                         .padding(24)
                         .background(.white.opacity(0.08), in: .rect(cornerRadius: 30))
                         .overlay {
                             RoundedRectangle(cornerRadius: 30)
+                                .strokeBorder(.white.opacity(0.10), lineWidth: 1)
+                        }
+
+                        VStack(alignment: .leading, spacing: 14) {
+                            Text("Last 7 days")
+                                .font(.headline)
+                                .foregroundStyle(.white.opacity(0.58))
+
+                            ForEach(insight.recentDays) { day in
+                                HStack(spacing: 14) {
+                                    Image(systemName: day.didComplete ? "checkmark.circle.fill" : "circle")
+                                        .font(.title3)
+                                        .foregroundStyle(day.didComplete ? .white : .white.opacity(0.4))
+
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(day.label)
+                                            .font(.headline)
+                                            .foregroundStyle(.white)
+                                        Text(day.didComplete ? "\(day.sessionCount) session\(day.sessionCount == 1 ? "" : "s") completed" : "No breathwork logged")
+                                            .font(.subheadline)
+                                            .foregroundStyle(.white.opacity(0.6))
+                                    }
+
+                                    Spacer()
+                                }
+                            }
+                        }
+                        .padding(20)
+                        .background(.white.opacity(0.08), in: .rect(cornerRadius: 26))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 26)
                                 .strokeBorder(.white.opacity(0.10), lineWidth: 1)
                         }
 
@@ -1197,6 +1305,63 @@ private struct SleepProgressView: View {
             }
             .navigationTitle("Progress")
             .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+}
+
+private struct ProgressSummaryCard: View {
+    let title: String
+    let value: String
+    let subtitle: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.subheadline)
+                .foregroundStyle(.white.opacity(0.58))
+            Text(value)
+                .font(.title.weight(.semibold))
+                .foregroundStyle(.white)
+            Text(subtitle)
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.58))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(.white.opacity(0.08), in: .rect(cornerRadius: 24))
+        .overlay {
+            RoundedRectangle(cornerRadius: 24)
+                .strokeBorder(.white.opacity(0.10), lineWidth: 1)
+        }
+    }
+}
+
+private struct HomeStatCard: View {
+    let title: String
+    let value: String
+    let subtitle: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.58))
+            Text(value)
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            Text(subtitle)
+                .font(.caption2)
+                .foregroundStyle(.white.opacity(0.58))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(.white.opacity(0.08), in: .rect(cornerRadius: 22))
+        .overlay {
+            RoundedRectangle(cornerRadius: 22)
+                .strokeBorder(.white.opacity(0.10), lineWidth: 1)
         }
     }
 }
@@ -1242,6 +1407,7 @@ private struct SleepQuestionScreen<Content: View>: View {
     let title: String
     let subtitle: String
     let ctaTitle: String
+    let isCTAEnabled: Bool
     @ViewBuilder let content: Content
     let action: () -> Void
 
@@ -1275,6 +1441,7 @@ private struct SleepQuestionScreen<Content: View>: View {
 
                 Button(ctaTitle, action: action)
                     .buttonStyle(SleepPrimaryButtonStyle())
+                    .disabled(!isCTAEnabled)
             }
             .padding(.horizontal, 22)
             .padding(.bottom, 20)
@@ -1541,10 +1708,12 @@ private struct SessionMetricRow: View {
 
 private struct BreathworkSessionView: View {
     @Binding var isPresented: Bool
+    let viewModel: SleepResetViewModel
     @State private var currentPhaseIndex: Int = 0
     @State private var completedCycles: Int = 0
     @State private var secondsRemaining: Int = 4
     @State private var isSessionRunning: Bool = false
+    @State private var hasRecordedCompletion: Bool = false
 
     private let phases: [(title: String, seconds: Int, symbol: String)] = [
         ("Inhale", 4, "arrow.up.circle.fill"),
@@ -1695,6 +1864,10 @@ private struct BreathworkSessionView: View {
         return isSessionRunning ? "Pause" : (completedCycles == 0 && currentPhaseIndex == 0 ? "Begin Session" : "Resume")
     }
 
+    private var completedDurationSeconds: Int {
+        completedCycles * phases.reduce(0) { $0 + $1.seconds }
+    }
+
     private var isSessionComplete: Bool {
         completedCycles >= totalCycles
     }
@@ -1722,6 +1895,14 @@ private struct BreathworkSessionView: View {
             isSessionRunning = false
             secondsRemaining = 0
             currentPhaseIndex = phases.count - 1
+            if !hasRecordedCompletion {
+                hasRecordedCompletion = true
+                viewModel.recordBreathworkSession(
+                    completedCycles: completedCycles,
+                    totalCycles: totalCycles,
+                    durationSeconds: completedDurationSeconds
+                )
+            }
             return
         }
 

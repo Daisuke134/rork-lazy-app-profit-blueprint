@@ -16,6 +16,9 @@
 - [x] Paywall screen immediately after the reveal with premium plan benefits, pricing, and one primary continue button.
 - [x] Plan screen for subscribers showing tonight’s reset time, wind-down checklist, and tomorrow recovery steps.
 - [x] Progress screen showing streaks, recent scores, and visible improvement over time.
+- [x] Record completed breathwork sessions on-device and surface real streak/activity data on Home and Progress.
+- [x] Start onboarding questions with no preselected answers so every choice is made intentionally.
+- [x] Slow down the customization step with a visible progress animation so the plan reveal feels earned.
 - [x] Settings screen for subscription access, reminders, privacy, and support.
 - [x] Build the app around one simple viral moment: a fast sleep reset score reveal that is easy to screen-record and understand in seconds.
 - [x] Make the first-time experience ad-friendly by getting to the reveal quickly with minimal friction.

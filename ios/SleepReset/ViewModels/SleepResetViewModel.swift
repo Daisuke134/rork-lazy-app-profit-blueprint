@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 import Observation
 import RevenueCat
@@ -6,19 +7,19 @@ import RevenueCat
 @MainActor
 final class SleepResetViewModel {
     var path: [SleepResetStep] = []
-    var selectedGoal: SleepGoal = .improveSleep
-    var chronotype: SleepChronotype = .nightOwl
-    var sleepLatency: SleepLatency = .under30
-    var nightAwakenings: NightAwakenings = .once
-    var consistency: SleepConsistency = .inconsistent
-    var weekendDrift: WeekendDrift = .twoToThree
-    var eveningState: EveningState = .mentallyBusy
-    var windDownStyle: WindDownStyle = .nothing
+    var selectedGoal: SleepGoal?
+    var chronotype: SleepChronotype?
+    var sleepLatency: SleepLatency?
+    var nightAwakenings: NightAwakenings?
+    var consistency: SleepConsistency?
+    var weekendDrift: WeekendDrift?
+    var eveningState: EveningState?
+    var windDownStyle: WindDownStyle?
     var bedtime: Date = SleepResetViewModel.defaultBedtime
     var wakeTime: Date = SleepResetViewModel.defaultWakeTime
-    var energyLevel: EnergyLevel = .low
-    var disruption: SleepDisruption = .lateNights
-    var motivation: MotivationLevel = .ready
+    var energyLevel: EnergyLevel?
+    var disruption: SleepDisruption?
+    var motivation: MotivationLevel?
     var result: SleepResetResult?
     var plan: ResetPlan?
     var selectedProduct: SubscriptionProduct = .yearly
@@ -28,19 +29,15 @@ final class SleepResetViewModel {
     var isPurchasing: Bool = false
     var paywallErrorMessage: String?
     var hasUnlockedPlan: Bool = false
-    var progressPoints: [ProgressPoint] = [
-        ProgressPoint(day: "Mon", score: 41),
-        ProgressPoint(day: "Tue", score: 48),
-        ProgressPoint(day: "Wed", score: 56),
-        ProgressPoint(day: "Thu", score: 63),
-        ProgressPoint(day: "Fri", score: 71)
-    ]
+    var breathworkSessions: [BreathworkSession] = []
 
     private let scoringService: SleepResetScoringService = SleepResetScoringService()
     private let analyticsService: AnalyticsService = AnalyticsService()
+    private let defaults: UserDefaults = .standard
 
     init() {
         analyticsService.track(.appOpen)
+        loadBreathworkSessions()
         Task {
             await refreshSubscriptionState()
         }
@@ -58,12 +55,59 @@ final class SleepResetViewModel {
 
     var personalizationSummary: String {
         [
-            selectedGoal.rawValue,
-            chronotype.rawValue,
-            eveningState.rawValue,
-            disruption.rawValue
+            selectedGoal?.rawValue,
+            chronotype?.rawValue,
+            eveningState?.rawValue,
+            disruption?.rawValue
         ]
+        .compactMap { $0 }
         .joined(separator: " · ")
+    }
+
+    var breathworkInsight: BreathworkInsight {
+        let calendar: Calendar = .current
+        let sortedSessions: [BreathworkSession] = breathworkSessions.sorted { $0.completedAt > $1.completedAt }
+        let groupedByDay: [Date: [BreathworkSession]] = Dictionary(grouping: sortedSessions) { session in
+            calendar.startOfDay(for: session.completedAt)
+        }
+        let recentDays: [ProgressDay] = (0..<7).compactMap { offset in
+            guard let date = calendar.date(byAdding: .day, value: -offset, to: .now) else {
+                return nil
+            }
+
+            let dayStart: Date = calendar.startOfDay(for: date)
+            let sessions: [BreathworkSession] = groupedByDay[dayStart] ?? []
+            return ProgressDay(
+                id: dayStart,
+                date: dayStart,
+                label: offset == 0 ? "Today" : dayStart.formatted(.dateTime.weekday(.abbreviated)),
+                didComplete: !sessions.isEmpty,
+                sessionCount: sessions.count
+            )
+        }
+        let currentStreak: Int = streakCount(from: recentDays)
+        let longestStreak: Int = longestStreakCount(for: groupedByDay.keys.sorted())
+        let completedDaysThisWeek: Int = recentDays.filter(\.didComplete).count
+        let totalSessions: Int = sortedSessions.count
+        let totalMinutes: Int = sortedSessions.reduce(0) { partialResult, session in
+            partialResult + Int((Double(session.durationSeconds) / 60.0).rounded(.up))
+        }
+
+        return BreathworkInsight(
+            currentStreak: currentStreak,
+            longestStreak: longestStreak,
+            completedDaysThisWeek: completedDaysThisWeek,
+            totalSessions: totalSessions,
+            totalMinutes: totalMinutes,
+            completedToday: recentDays.first?.didComplete ?? false,
+            recentDays: recentDays
+        )
+    }
+
+    var progressPoints: [ProgressPoint] {
+        breathworkInsight.recentDays.reversed().map { day in
+            ProgressPoint(day: day.label, score: day.didComplete ? max(28, day.sessionCount * 32) : 10)
+        }
     }
 
     private var questionStepCount: Int {
@@ -94,34 +138,42 @@ final class SleepResetViewModel {
     }
 
     func continueFromGoals() {
+        guard selectedGoal != nil else { return }
         path.append(.chronotype)
     }
 
     func continueFromChronotype() {
+        guard chronotype != nil else { return }
         path.append(.sleepLatency)
     }
 
     func continueFromSleepLatency() {
+        guard sleepLatency != nil else { return }
         path.append(.nightAwakenings)
     }
 
     func continueFromNightAwakenings() {
+        guard nightAwakenings != nil else { return }
         path.append(.consistency)
     }
 
     func continueFromConsistency() {
+        guard consistency != nil else { return }
         path.append(.weekendDrift)
     }
 
     func continueFromWeekendDrift() {
+        guard weekendDrift != nil else { return }
         path.append(.eveningState)
     }
 
     func continueFromEveningState() {
+        guard eveningState != nil else { return }
         path.append(.windDownStyle)
     }
 
     func continueFromWindDownStyle() {
+        guard windDownStyle != nil else { return }
         path.append(.bedtime)
     }
 
@@ -134,14 +186,17 @@ final class SleepResetViewModel {
     }
 
     func continueFromEnergyLevel() {
+        guard energyLevel != nil else { return }
         path.append(.disruption)
     }
 
     func continueFromDisruption() {
+        guard disruption != nil else { return }
         path.append(.motivation)
     }
 
     func continueFromMotivation() {
+        guard motivation != nil else { return }
         analyticsService.track(.onboardingComplete)
         Task {
             await analyze()
@@ -149,12 +204,26 @@ final class SleepResetViewModel {
     }
 
     func analyze() async {
+        guard
+            let chronotype,
+            let sleepLatency,
+            let nightAwakenings,
+            let consistency,
+            let weekendDrift,
+            let eveningState,
+            let disruption,
+            let motivation,
+            let energyLevel
+        else {
+            return
+        }
+
         isAnalyzing = true
         analyticsService.track(.scoreStarted)
         path.append(.analyzing)
 
         do {
-            try await Task.sleep(for: .milliseconds(1400))
+            try await Task.sleep(for: .milliseconds(2800))
         } catch {
             isAnalyzing = false
             if path.last == .analyzing {
@@ -180,7 +249,7 @@ final class SleepResetViewModel {
             bedtime: bedtime,
             wakeTime: wakeTime,
             disruption: disruption,
-            windDownStyle: windDownStyle,
+            windDownStyle: windDownStyle ?? .breathwork,
             eveningState: eveningState
         )
 
@@ -291,6 +360,39 @@ final class SleepResetViewModel {
         paywallErrorMessage = nil
     }
 
+    func recordBreathworkSession(completedCycles: Int, totalCycles: Int, durationSeconds: Int) {
+        let session = BreathworkSession(
+            id: UUID(),
+            completedAt: .now,
+            completedCycles: completedCycles,
+            totalCycles: totalCycles,
+            durationSeconds: durationSeconds
+        )
+        breathworkSessions.insert(session, at: 0)
+        persistBreathworkSessions()
+    }
+
+    func resetFlow() {
+        path = []
+        hasUnlockedPlan = false
+        result = nil
+        plan = nil
+        selectedGoal = nil
+        chronotype = nil
+        sleepLatency = nil
+        nightAwakenings = nil
+        consistency = nil
+        weekendDrift = nil
+        eveningState = nil
+        windDownStyle = nil
+        bedtime = Self.defaultBedtime
+        wakeTime = Self.defaultWakeTime
+        energyLevel = nil
+        disruption = nil
+        motivation = nil
+        selectedProduct = .yearly
+    }
+
     private func observeCustomerInfo() async {
         for await customerInfo in Purchases.shared.customerInfoStream {
             let isPremium: Bool = customerInfo.entitlements["premium"]?.isActive == true
@@ -319,26 +421,65 @@ final class SleepResetViewModel {
         }
     }
 
-    func resetFlow() {
-        path = []
-        hasUnlockedPlan = false
-        result = nil
-        plan = nil
-        selectedGoal = .improveSleep
-        chronotype = .nightOwl
-        sleepLatency = .under30
-        nightAwakenings = .once
-        consistency = .inconsistent
-        weekendDrift = .twoToThree
-        eveningState = .mentallyBusy
-        windDownStyle = .nothing
-        bedtime = Self.defaultBedtime
-        wakeTime = Self.defaultWakeTime
-        energyLevel = .low
-        disruption = .lateNights
-        motivation = .ready
-        selectedProduct = .yearly
+    private func streakCount(from recentDays: [ProgressDay]) -> Int {
+        var streak: Int = 0
+        for day in recentDays {
+            guard day.didComplete else {
+                break
+            }
+            streak += 1
+        }
+        return streak
     }
+
+    private func longestStreakCount(for days: [Date]) -> Int {
+        let calendar: Calendar = .current
+        guard !days.isEmpty else {
+            return 0
+        }
+
+        var longest: Int = 1
+        var current: Int = 1
+
+        for index in 1..<days.count {
+            let previousDay: Date = days[index - 1]
+            let day: Date = days[index]
+            let difference: Int = calendar.dateComponents([.day], from: previousDay, to: day).day ?? 0
+
+            if difference == 1 {
+                current += 1
+                longest = max(longest, current)
+            } else {
+                current = 1
+            }
+        }
+
+        return longest
+    }
+
+    private func loadBreathworkSessions() {
+        guard let data = defaults.data(forKey: Self.breathworkSessionsKey) else {
+            breathworkSessions = []
+            return
+        }
+
+        do {
+            breathworkSessions = try JSONDecoder().decode([BreathworkSession].self, from: data)
+        } catch {
+            breathworkSessions = []
+        }
+    }
+
+    private func persistBreathworkSessions() {
+        do {
+            let data = try JSONEncoder().encode(breathworkSessions)
+            defaults.set(data, forKey: Self.breathworkSessionsKey)
+        } catch {
+            return
+        }
+    }
+
+    private static let breathworkSessionsKey: String = "sleepResetBreathworkSessions"
 
     private static var defaultBedtime: Date {
         let calendar: Calendar = Calendar.current
