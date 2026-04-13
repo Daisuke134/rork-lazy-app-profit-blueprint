@@ -425,33 +425,23 @@ private struct SleepPaywallView: View {
         ZStack {
             SleepBackdropView(variant: .dawn)
 
-            VStack(alignment: .leading, spacing: 16) {
-                Spacer(minLength: 6)
+            VStack(alignment: .leading, spacing: 12) {
+                Spacer(minLength: 0)
 
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Unlock your full reset plan")
-                        .font(.system(.largeTitle, design: .default, weight: .bold))
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Unlock your reset plan")
+                        .font(.system(.title, design: .default, weight: .bold))
                         .foregroundStyle(.white)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.9)
 
-                    Text("No trial. Subscribe once and go straight into tonight's plan, daily guidance, and progress tracking.")
-                        .font(.headline)
+                    Text("Subscribe to open tonight’s plan, tomorrow’s wake guidance, and progress tracking.")
+                        .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.72))
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
                 SleepTimelineCard(plan: viewModel.plan)
-
-                VStack(alignment: .leading, spacing: 12) {
-                    PaywallBenefitRow(icon: "bed.double.fill", title: "Tonight's plan", subtitle: "See the exact bedtime target and wind-down steps for tonight")
-                    PaywallBenefitRow(icon: "sun.max.fill", title: "Morning reset", subtitle: "Open the app tomorrow and follow your wake guidance")
-                    PaywallBenefitRow(icon: "chart.line.uptrend.xyaxis", title: "Progress tracking", subtitle: "Keep your rhythm steady and see your score improve")
-                }
-                .padding(18)
-                .background(.white.opacity(0.08), in: .rect(cornerRadius: 28))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 28)
-                        .strokeBorder(.white.opacity(0.12), lineWidth: 1)
-                }
 
                 VStack(spacing: 10) {
                     ForEach(SubscriptionProduct.allCases) { product in
@@ -465,10 +455,11 @@ private struct SleepPaywallView: View {
                 }
 
                 Text(selectedPricingLine)
-                    .font(.footnote)
-                    .foregroundStyle(.white.opacity(0.58))
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.64))
                     .frame(maxWidth: .infinity, alignment: .center)
                     .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Button {
                     Task {
@@ -480,11 +471,19 @@ private struct SleepPaywallView: View {
                             ProgressView()
                                 .tint(.black.opacity(0.72))
                         }
-                        Text(viewModel.isPurchasing ? "Processing..." : "Continue")
+
+                        Text(viewModel.isPurchasing ? "Processing..." : purchaseButtonTitle)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
                     }
                 }
                 .buttonStyle(SleepAccentButtonStyle())
                 .disabled(viewModel.isPurchasing || viewModel.isLoadingProducts)
+
+                HStack(spacing: 8) {
+                    PaywallBenefitRow(icon: "bed.double.fill", title: "Tonight", subtitle: "Exact bedtime target")
+                    PaywallBenefitRow(icon: "sun.max.fill", title: "Tomorrow", subtitle: "Wake guidance")
+                }
 
                 Button("Restore Purchases") {
                     Task {
@@ -497,9 +496,9 @@ private struct SleepPaywallView: View {
                 .frame(maxWidth: .infinity)
                 .disabled(viewModel.isPurchasing)
             }
-            .padding(.horizontal, 22)
-            .padding(.top, 12)
-            .padding(.bottom, 20)
+            .padding(.horizontal, 20)
+            .padding(.top, 10)
+            .padding(.bottom, 16)
         }
         .toolbar(.hidden, for: .navigationBar)
         .navigationBarBackButtonHidden(true)
@@ -524,12 +523,21 @@ private struct SleepPaywallView: View {
         }
     }
 
+    private var purchaseButtonTitle: String {
+        switch viewModel.selectedProduct {
+        case .weekly:
+            "Subscribe for $12.99/week"
+        case .yearly:
+            "Subscribe for $49.99/year"
+        }
+    }
+
     private var selectedPricingLine: String {
         switch viewModel.selectedProduct {
         case .weekly:
-            "$7.99 per week. No trial. Renews automatically unless canceled in Settings."
+            "$12.99 per week. No trial. Auto-renews until canceled in Settings."
         case .yearly:
-            "$49.99 per year. No trial. Best value for building a steady rhythm."
+            "$49.99 per year. No trial. Lowest effective price for long-term reset support."
         }
     }
 }
@@ -541,42 +549,49 @@ private struct SubscriptionOptionCard: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 14) {
+            HStack(alignment: .center, spacing: 12) {
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                     .font(.title3)
                     .foregroundStyle(.white)
 
                 VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 8) {
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Text(product.title)
                             .font(.headline)
                             .foregroundStyle(.white)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.9)
 
                         if product == .yearly {
-                            Text("BEST VALUE")
+                            Text("BEST")
                                 .font(.caption2.weight(.bold))
                                 .foregroundStyle(.black.opacity(0.72))
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 3)
                                 .background(.white, in: .capsule)
                         }
                     }
 
                     Text(product.subtitle)
-                        .font(.subheadline)
-                        .foregroundStyle(.white.opacity(0.6))
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.64))
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
-                Spacer()
+                Spacer(minLength: 8)
 
                 Text(product.rawValue)
-                    .font(.headline)
+                    .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.white)
+                    .multilineTextAlignment(.trailing)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
             }
-            .padding(18)
-            .background(isSelected ? .white.opacity(0.16) : .white.opacity(0.08), in: .rect(cornerRadius: 24))
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .background(isSelected ? .white.opacity(0.16) : .white.opacity(0.08), in: .rect(cornerRadius: 22))
             .overlay {
-                RoundedRectangle(cornerRadius: 24)
+                RoundedRectangle(cornerRadius: 22)
                     .strokeBorder(.white.opacity(isSelected ? 0.24 : 0.12), lineWidth: 1)
             }
         }
@@ -1133,17 +1148,29 @@ private struct SleepTimelineCard: View {
     let plan: ResetPlan?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            SleepTimelineRow(icon: "lock.fill", title: "Tonight", subtitle: "Unlock your exact bedtime target and evening routine.")
-            SleepTimelineRow(icon: "sunrise.fill", title: "Tomorrow", subtitle: "Open your wake guidance and keep the rebound going.")
-            SleepTimelineRow(icon: "waveform.path.ecg", title: "This week", subtitle: plan?.bedtimeTarget ?? "Follow a steadier cadence as your rhythm settles.")
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Your plan preview")
+                .font(.headline)
+                .foregroundStyle(.white)
+
+            SleepTimelineRow(icon: "lock.fill", title: "Tonight", subtitle: "Exact bedtime target and wind-down routine")
+            SleepTimelineRow(icon: "sunrise.fill", title: "Tomorrow", subtitle: "Wake guidance to keep the reset going")
+            SleepTimelineRow(icon: "waveform.path.ecg", title: "This week", subtitle: weeklyPreviewText)
         }
-        .padding(20)
-        .background(.white.opacity(0.08), in: .rect(cornerRadius: 28))
+        .padding(18)
+        .background(.white.opacity(0.08), in: .rect(cornerRadius: 24))
         .overlay {
-            RoundedRectangle(cornerRadius: 28)
+            RoundedRectangle(cornerRadius: 24)
                 .strokeBorder(.white.opacity(0.10), lineWidth: 1)
         }
+    }
+
+    private var weeklyPreviewText: String {
+        if let plan {
+            return "Built around your target bedtime of \(plan.bedtimeTarget)"
+        }
+
+        return "Built around a steadier cadence as your rhythm settles"
     }
 }
 
@@ -1153,23 +1180,23 @@ private struct SleepTimelineRow: View {
     let subtitle: String
 
     var body: some View {
-        HStack(alignment: .top, spacing: 14) {
+        HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
-                .font(.title3)
+                .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.white)
-                .frame(width: 30)
+                .frame(width: 24)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.title3.weight(.semibold))
+                    .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.white)
                 Text(subtitle)
-                    .font(.body)
-                    .foregroundStyle(.white.opacity(0.62))
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.64))
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            Spacer()
+            Spacer(minLength: 0)
         }
     }
 }
@@ -1180,24 +1207,33 @@ private struct PaywallBenefitRow: View {
     let subtitle: String
 
     var body: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 10) {
             Image(systemName: icon)
-                .font(.title3)
+                .font(.headline)
                 .foregroundStyle(.white)
-                .frame(width: 44, height: 44)
+                .frame(width: 36, height: 36)
                 .background(.white.opacity(0.06), in: .circle)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.headline)
+                    .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.white)
+                    .lineLimit(1)
                 Text(subtitle)
-                    .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.58))
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.6))
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            Spacer()
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(.white.opacity(0.08), in: .rect(cornerRadius: 18))
+        .overlay {
+            RoundedRectangle(cornerRadius: 18)
+                .strokeBorder(.white.opacity(0.10), lineWidth: 1)
         }
     }
 }
@@ -1240,10 +1276,10 @@ private struct SleepPrimaryButtonStyle: ButtonStyle {
 private struct SleepAccentButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.title2.weight(.semibold))
+            .font(.headline.weight(.semibold))
             .foregroundStyle(.black.opacity(0.78))
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 20)
+            .padding(.vertical, 17)
             .background(Color(red: 0.89, green: 0.93, blue: 0.96).opacity(configuration.isPressed ? 0.86 : 1), in: .capsule)
             .scaleEffect(configuration.isPressed ? 0.99 : 1)
             .animation(.spring(response: 0.24, dampingFraction: 0.86), value: configuration.isPressed)
