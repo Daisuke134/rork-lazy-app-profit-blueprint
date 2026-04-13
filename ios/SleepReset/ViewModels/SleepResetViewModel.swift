@@ -99,10 +99,22 @@ final class SleepResetViewModel {
         analyticsService.track(.scoreRevealed, properties: ["score": "\(result.score)"])
     }
 
+    func showReviewPrompt() {
+        guard path.last != .reviewPrompt else { return }
+        path.append(.reviewPrompt)
+    }
+
     func showPaywall() {
         guard path.last != .paywall else { return }
         path.append(.paywall)
         analyticsService.track(.paywallViewed)
+    }
+
+    func continueFromReviewPrompt() {
+        if path.last == .reviewPrompt {
+            _ = path.popLast()
+        }
+        showPaywall()
     }
 
     func purchaseSelectedPlan() async {
@@ -195,7 +207,20 @@ final class SleepResetViewModel {
     }
 
     private var selectedPackage: Package? {
-        currentOffering?.availablePackages.first(where: { $0.storeProduct.productIdentifier == selectedProduct.revenueCatProductID })
+        guard let currentOffering else {
+            return nil
+        }
+
+        switch selectedProduct {
+        case .weekly:
+            return currentOffering.weekly
+            ?? currentOffering.availablePackages.first(where: { $0.packageType == .weekly })
+            ?? currentOffering.availablePackages.first(where: { $0.storeProduct.productIdentifier == selectedProduct.revenueCatProductID })
+        case .yearly:
+            return currentOffering.annual
+            ?? currentOffering.availablePackages.first(where: { $0.packageType == .annual })
+            ?? currentOffering.availablePackages.first(where: { $0.storeProduct.productIdentifier == selectedProduct.revenueCatProductID })
+        }
     }
 
     func resetFlow() {

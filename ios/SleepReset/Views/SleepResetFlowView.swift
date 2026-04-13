@@ -1,4 +1,5 @@
 import SwiftUI
+import StoreKit
 
 struct SleepResetFlowView: View {
     @State private var viewModel: SleepResetViewModel = SleepResetViewModel()
@@ -26,6 +27,8 @@ struct SleepResetFlowView: View {
                                 SleepAnalyzingView()
                             case .result:
                                 SleepResultView(viewModel: viewModel)
+                            case .reviewPrompt:
+                                SleepReviewPromptView(viewModel: viewModel)
                             case .paywall:
                                 SleepPaywallView(viewModel: viewModel)
                             case .dashboard:
@@ -405,7 +408,7 @@ private struct SleepResultView: View {
                     Spacer(minLength: 0)
 
                     Button("Unlock My Reset Plan") {
-                        viewModel.showPaywall()
+                        viewModel.showReviewPrompt()
                     }
                     .buttonStyle(SleepPrimaryButtonStyle())
                 }
@@ -418,6 +421,70 @@ private struct SleepResultView: View {
     }
 }
 
+private struct SleepReviewPromptView: View {
+    let viewModel: SleepResetViewModel
+    @Environment(\.requestReview) private var requestReview
+    @AppStorage("hasRequestedSleepResetReview") private var hasRequestedSleepResetReview: Bool = false
+
+    var body: some View {
+        ZStack {
+            SleepBackdropView(variant: .dawn)
+
+            VStack(alignment: .leading, spacing: 18) {
+                Spacer()
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Your reset plan is ready")
+                        .font(.system(.largeTitle, design: .default, weight: .bold))
+                        .foregroundStyle(.white)
+
+                    Text("If the score already feels useful, a quick App Store rating helps more people discover it.")
+                        .font(.title3)
+                        .foregroundStyle(.white.opacity(0.72))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                VStack(alignment: .leading, spacing: 14) {
+                    SleepTimelineRow(icon: "star.bubble.fill", title: "Quick favor", subtitle: "iOS may show a review prompt here if Apple decides it’s the right time.")
+                    SleepTimelineRow(icon: "checkmark.seal.fill", title: "No extra step", subtitle: "Whether the prompt appears or not, your plan is still waiting on the next screen.")
+                }
+                .padding(20)
+                .background(.white.opacity(0.08), in: .rect(cornerRadius: 28))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 28)
+                        .strokeBorder(.white.opacity(0.10), lineWidth: 1)
+                }
+
+                Spacer()
+
+                Button("Continue to Subscription") {
+                    viewModel.continueFromReviewPrompt()
+                }
+                .buttonStyle(SleepPrimaryButtonStyle())
+            }
+            .padding(.horizontal, 22)
+            .padding(.top, 18)
+            .padding(.bottom, 20)
+        }
+        .toolbar(.hidden, for: .navigationBar)
+        .navigationBarBackButtonHidden(true)
+        .task {
+            guard !hasRequestedSleepResetReview else {
+                return
+            }
+
+            do {
+                try await Task.sleep(for: .seconds(1))
+            } catch {
+                return
+            }
+
+            requestReview()
+            hasRequestedSleepResetReview = true
+        }
+    }
+}
+
 private struct SleepPaywallView: View {
     @Bindable var viewModel: SleepResetViewModel
 
@@ -425,79 +492,12 @@ private struct SleepPaywallView: View {
         ZStack {
             SleepBackdropView(variant: .dawn)
 
-            VStack(alignment: .leading, spacing: 12) {
-                Spacer(minLength: 0)
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Unlock your reset plan")
-                        .font(.system(.title, design: .default, weight: .bold))
-                        .foregroundStyle(.white)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.9)
-
-                    Text("Subscribe to open tonight’s plan, tomorrow’s wake guidance, and progress tracking.")
-                        .font(.subheadline)
-                        .foregroundStyle(.white.opacity(0.72))
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                SleepTimelineCard(plan: viewModel.plan)
-
-                VStack(spacing: 10) {
-                    ForEach(SubscriptionProduct.allCases) { product in
-                        SubscriptionOptionCard(
-                            product: product,
-                            isSelected: viewModel.selectedProduct == product
-                        ) {
-                            viewModel.selectedProduct = product
-                        }
-                    }
-                }
-
-                Text(selectedPricingLine)
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.64))
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Button {
-                    Task {
-                        await viewModel.purchaseSelectedPlan()
-                    }
-                } label: {
-                    HStack(spacing: 10) {
-                        if viewModel.isPurchasing {
-                            ProgressView()
-                                .tint(.black.opacity(0.72))
-                        }
-
-                        Text(viewModel.isPurchasing ? "Processing..." : purchaseButtonTitle)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.85)
-                    }
-                }
-                .buttonStyle(SleepAccentButtonStyle())
-                .disabled(viewModel.isPurchasing || viewModel.isLoadingProducts)
-
-                HStack(spacing: 8) {
-                    PaywallBenefitRow(icon: "bed.double.fill", title: "Tonight", subtitle: "Exact bedtime target")
-                    PaywallBenefitRow(icon: "sun.max.fill", title: "Tomorrow", subtitle: "Wake guidance")
-                }
-
-                Button("Restore Purchases") {
-                    Task {
-                        await viewModel.restorePurchases()
-                    }
-                }
-                .buttonStyle(.plain)
-                .font(.footnote)
-                .foregroundStyle(.white.opacity(0.68))
-                .frame(maxWidth: .infinity)
-                .disabled(viewModel.isPurchasing)
+            ViewThatFits(in: .vertical) {
+                paywallLayout(spacing: 14, titleFont: .system(.largeTitle, design: .default, weight: .bold), subtitleFont: .body)
+                paywallLayout(spacing: 10, titleFont: .system(.title, design: .default, weight: .bold), subtitleFont: .subheadline)
             }
             .padding(.horizontal, 20)
-            .padding(.top, 10)
+            .padding(.top, 12)
             .padding(.bottom, 16)
         }
         .toolbar(.hidden, for: .navigationBar)
@@ -523,21 +523,100 @@ private struct SleepPaywallView: View {
         }
     }
 
+    private func paywallLayout(spacing: CGFloat, titleFont: Font, subtitleFont: Font) -> some View {
+        VStack(alignment: .leading, spacing: spacing) {
+            Spacer(minLength: 0)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Unlock your reset plan")
+                    .font(titleFont)
+                    .foregroundStyle(.white)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.82)
+
+                Text("One subscription unlocks tonight’s bedtime target, guided breathwork, and tomorrow’s recovery steps.")
+                    .font(subtitleFont)
+                    .foregroundStyle(.white.opacity(0.72))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
+                SleepTimelineRow(icon: "bed.double.fill", title: "Tonight", subtitle: "Exact bedtime target and wind-down timing")
+                SleepTimelineRow(icon: "wind", title: "Breathwork", subtitle: "A guided session to settle your body before bed")
+                SleepTimelineRow(icon: "sun.max.fill", title: "Tomorrow", subtitle: "Wake guidance that keeps the reset going")
+            }
+            .padding(18)
+            .background(.white.opacity(0.08), in: .rect(cornerRadius: 24))
+            .overlay {
+                RoundedRectangle(cornerRadius: 24)
+                    .strokeBorder(.white.opacity(0.10), lineWidth: 1)
+            }
+
+            VStack(spacing: 10) {
+                ForEach(SubscriptionProduct.allCases) { product in
+                    SubscriptionOptionCard(
+                        product: product,
+                        isSelected: viewModel.selectedProduct == product
+                    ) {
+                        viewModel.selectedProduct = product
+                    }
+                }
+            }
+
+            Text(selectedPricingLine)
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.64))
+                .frame(maxWidth: .infinity, alignment: .center)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Button {
+                Task {
+                    await viewModel.purchaseSelectedPlan()
+                }
+            } label: {
+                HStack(spacing: 10) {
+                    if viewModel.isPurchasing {
+                        ProgressView()
+                            .tint(.black.opacity(0.72))
+                    }
+
+                    Text(viewModel.isPurchasing ? "Processing..." : purchaseButtonTitle)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+            }
+            .buttonStyle(SleepAccentButtonStyle())
+            .disabled(viewModel.isPurchasing || viewModel.isLoadingProducts)
+
+            Button("Restore Purchases") {
+                Task {
+                    await viewModel.restorePurchases()
+                }
+            }
+            .buttonStyle(.plain)
+            .font(.footnote)
+            .foregroundStyle(.white.opacity(0.68))
+            .frame(maxWidth: .infinity)
+            .disabled(viewModel.isPurchasing)
+        }
+    }
+
     private var purchaseButtonTitle: String {
         switch viewModel.selectedProduct {
         case .weekly:
-            "Subscribe for $12.99/week"
+            "Continue with $12.99/week"
         case .yearly:
-            "Subscribe for $49.99/year"
+            "Continue with $49.99/year"
         }
     }
 
     private var selectedPricingLine: String {
         switch viewModel.selectedProduct {
         case .weekly:
-            "$12.99 per week. No trial. Auto-renews until canceled in Settings."
+            "$12.99 weekly. No trial. Renews automatically until canceled."
         case .yearly:
-            "$49.99 per year. No trial. Lowest effective price for long-term reset support."
+            "$49.99 yearly. No trial. Best long-term value. Renews automatically until canceled."
         }
     }
 }
@@ -627,21 +706,7 @@ private struct SleepDashboardView: View {
 
 private struct SleepHomeView: View {
     let viewModel: SleepResetViewModel
-
-    private let quickActions: [(String, String)] = [
-        ("Wind Down", "leaf.fill"),
-        ("Breathwork", "wind"),
-        ("Sleep Tracker", "moon.zzz.fill")
-    ]
-
-    private let topics: [String] = [
-        "Daily Reset",
-        "Deep Sleep",
-        "Calm Evenings",
-        "Breathwork",
-        "Mind Quieting",
-        "Morning Recovery"
-    ]
+    @State private var isShowingBreathwork: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -655,136 +720,76 @@ private struct SleepHomeView: View {
                                 .font(.system(.largeTitle, design: .default, weight: .bold))
                                 .foregroundStyle(.white)
 
-                            Text("Your next calm step is ready")
+                            Text("One guided breathwork session to help you settle tonight.")
                                 .font(.headline)
-                                .foregroundStyle(.white.opacity(0.48))
+                                .foregroundStyle(.white.opacity(0.58))
                         }
 
-                        HStack(spacing: 14) {
-                            ForEach(quickActions, id: \.0) { action in
-                                VStack(alignment: .leading, spacing: 18) {
-                                    Image(systemName: action.1)
-                                        .font(.title2)
+                        VStack(alignment: .leading, spacing: 18) {
+                            HStack(alignment: .top) {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("Tonight’s reset")
+                                        .font(.headline)
+                                        .foregroundStyle(.white.opacity(0.58))
+
+                                    Text("6 calm cycles")
+                                        .font(.system(.title, design: .default, weight: .bold))
                                         .foregroundStyle(.white)
-                                    Spacer()
-                                    Text(action.0)
-                                        .font(.title3.weight(.medium))
-                                        .foregroundStyle(.white.opacity(0.84))
+
+                                    Text("Inhale for 4, hold for 4, exhale for 6. The whole session takes about two minutes.")
+                                        .font(.body)
+                                        .foregroundStyle(.white.opacity(0.72))
+                                        .fixedSize(horizontal: false, vertical: true)
                                 }
-                                .padding(18)
-                                .frame(maxWidth: .infinity, minHeight: 128, alignment: .topLeading)
-                                .background(.white.opacity(0.08), in: .rect(cornerRadius: 28))
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: 28)
-                                        .strokeBorder(.white.opacity(0.10), lineWidth: 1)
-                                }
+
+                                Spacer(minLength: 12)
+
+                                Image(systemName: "wind")
+                                    .font(.system(size: 34, weight: .medium))
+                                    .foregroundStyle(.white)
+                                    .frame(width: 62, height: 62)
+                                    .background(.white.opacity(0.10), in: .circle)
                             }
-                        }
 
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("Today")
-                                .font(.headline)
-                                .foregroundStyle(.white.opacity(0.42))
+                            VStack(spacing: 10) {
+                                SessionMetricRow(title: "Best for", value: "Winding down before bed")
+                                SessionMetricRow(title: "Breathing pattern", value: "4 · 4 · 6")
+                                SessionMetricRow(title: "Focus", value: "Slower exhale, lower activation")
+                            }
 
-                            Text(todayQuote)
-                                .font(.title2)
-                                .foregroundStyle(.white)
-                                .fixedSize(horizontal: false, vertical: true)
-
-                            Text("A steadier night starts with a smaller shift.")
-                                .font(.subheadline)
-                                .foregroundStyle(.white.opacity(0.42))
+                            Button("Start Breathwork") {
+                                isShowingBreathwork = true
+                            }
+                            .buttonStyle(SleepPrimaryButtonStyle())
                         }
-                        .padding(20)
-                        .background(.white.opacity(0.06), in: .rect(cornerRadius: 30))
-                        .overlay(alignment: .trailing) {
-                            Circle()
-                                .fill(
-                                    LinearGradient(
-                                        colors: [Color.white.opacity(0.7), Color.cyan.opacity(0.5)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                                .frame(width: 128, height: 128)
-                                .blur(radius: 1)
-                                .padding(.trailing, 10)
-                                .allowsHitTesting(false)
-                        }
+                        .padding(22)
+                        .background(.white.opacity(0.08), in: .rect(cornerRadius: 30))
                         .overlay {
                             RoundedRectangle(cornerRadius: 30)
                                 .strokeBorder(.white.opacity(0.10), lineWidth: 1)
                         }
 
-                        ScrollView(.horizontal) {
-                            HStack(spacing: 10) {
-                                ForEach(topics, id: \.self) { topic in
-                                    Text(topic)
-                                        .font(.headline)
-                                        .foregroundStyle(.white.opacity(0.92))
-                                        .padding(.horizontal, 18)
-                                        .padding(.vertical, 12)
-                                        .background(.white.opacity(0.08), in: .capsule)
-                                        .overlay {
-                                            Capsule()
-                                                .strokeBorder(.white.opacity(0.08), lineWidth: 1)
-                                        }
-                                }
-                            }
-                        }
-                        .contentMargins(.horizontal, 0)
-                        .scrollIndicators(.hidden)
+                        if let plan = viewModel.plan {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("From your plan")
+                                    .font(.headline)
+                                    .foregroundStyle(.white.opacity(0.58))
 
-                        VStack(alignment: .leading, spacing: 14) {
-                            HStack {
-                                Text("Settle the mind")
-                                    .font(.largeTitle.weight(.medium))
+                                Text("Be in bed by \(plan.bedtimeTarget)")
+                                    .font(.title2.weight(.semibold))
                                     .foregroundStyle(.white)
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.title3.weight(.semibold))
-                                    .foregroundStyle(.white.opacity(0.8))
-                            }
 
-                            ScrollView(.horizontal) {
-                                HStack(spacing: 16) {
-                                    SleepArtworkCard(title: "Moon cycle") {
-                                        LinearGradient(
-                                            colors: [Color.black, Color(red: 0.16, green: 0.19, blue: 0.25)],
-                                            startPoint: .top,
-                                            endPoint: .bottom
-                                        )
-                                        .overlay {
-                                            HStack(spacing: 14) {
-                                                ForEach(0..<5, id: \.self) { index in
-                                                    Image(systemName: moonSymbol(for: index))
-                                                        .font(.system(size: 24))
-                                                        .foregroundStyle(.cyan.opacity(0.85))
-                                                }
-                                            }
-                                            .allowsHitTesting(false)
-                                        }
-                                    }
-
-                                    SleepArtworkCard(title: "Still water") {
-                                        LinearGradient(
-                                            colors: [Color.white.opacity(0.92), Color.cyan.opacity(0.26)],
-                                            startPoint: .top,
-                                            endPoint: .bottom
-                                        )
-                                        .overlay {
-                                            RoundedRectangle(cornerRadius: 12)
-                                                .fill(.black.opacity(0.7))
-                                                .frame(width: 82, height: 16)
-                                                .rotationEffect(.degrees(-8))
-                                                .offset(y: 18)
-                                                .allowsHitTesting(false)
-                                        }
-                                    }
-                                }
+                                Text("Wake at \(plan.wakeTarget) tomorrow to keep the rhythm moving in the right direction.")
+                                    .font(.body)
+                                    .foregroundStyle(.white.opacity(0.70))
+                                    .fixedSize(horizontal: false, vertical: true)
                             }
-                            .contentMargins(.horizontal, 0)
-                            .scrollIndicators(.hidden)
+                            .padding(20)
+                            .background(.white.opacity(0.06), in: .rect(cornerRadius: 26))
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 26)
+                                    .strokeBorder(.white.opacity(0.10), lineWidth: 1)
+                            }
                         }
                     }
                     .padding(.horizontal, 22)
@@ -795,24 +800,8 @@ private struct SleepHomeView: View {
             }
             .toolbar(.hidden, for: .navigationBar)
         }
-    }
-
-    private var todayQuote: String {
-        "If you want to soften the pressure of the day, return to rhythm, breath, and rest."
-    }
-
-    private func moonSymbol(for index: Int) -> String {
-        switch index {
-        case 0:
-            "moonphase.waxing.crescent"
-        case 1:
-            "moonphase.first.quarter"
-        case 2:
-            "moonphase.waxing.gibbous"
-        case 3:
-            "moonphase.full.moon"
-        default:
-            "moonphase.waning.gibbous"
+        .fullScreenCover(isPresented: $isShowingBreathwork) {
+            BreathworkSessionView(isPresented: $isShowingBreathwork)
         }
     }
 }
@@ -1235,6 +1224,224 @@ private struct PaywallBenefitRow: View {
             RoundedRectangle(cornerRadius: 18)
                 .strokeBorder(.white.opacity(0.10), lineWidth: 1)
         }
+    }
+}
+
+private struct SessionMetricRow: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        HStack {
+            Text(title)
+                .font(.subheadline)
+                .foregroundStyle(.white.opacity(0.58))
+
+            Spacer(minLength: 12)
+
+            Text(value)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.white)
+                .multilineTextAlignment(.trailing)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(.white.opacity(0.06), in: .rect(cornerRadius: 18))
+        .overlay {
+            RoundedRectangle(cornerRadius: 18)
+                .strokeBorder(.white.opacity(0.08), lineWidth: 1)
+        }
+    }
+}
+
+private struct BreathworkSessionView: View {
+    @Binding var isPresented: Bool
+    @State private var currentPhaseIndex: Int = 0
+    @State private var completedCycles: Int = 0
+    @State private var secondsRemaining: Int = 4
+    @State private var isSessionRunning: Bool = false
+
+    private let phases: [(title: String, seconds: Int, symbol: String)] = [
+        ("Inhale", 4, "arrow.up.circle.fill"),
+        ("Hold", 4, "pause.circle.fill"),
+        ("Exhale", 6, "arrow.down.circle.fill")
+    ]
+    private let totalCycles: Int = 6
+
+    var body: some View {
+        ZStack {
+            SleepBackdropView(variant: .midnight)
+
+            VStack(spacing: 28) {
+                HStack {
+                    Button("Close") {
+                        isPresented = false
+                    }
+                    .buttonStyle(.plain)
+                    .font(.headline)
+                    .foregroundStyle(.white.opacity(0.72))
+
+                    Spacer()
+
+                    Text("Breathwork")
+                        .font(.headline)
+                        .foregroundStyle(.white.opacity(0.72))
+
+                    Spacer()
+
+                    Text("\(completedCycles)/\(totalCycles)")
+                        .font(.headline)
+                        .foregroundStyle(.white.opacity(0.72))
+                }
+
+                Spacer()
+
+                VStack(spacing: 18) {
+                    Image(systemName: currentPhase.symbol)
+                        .font(.system(size: 44, weight: .medium))
+                        .foregroundStyle(.white)
+                        .symbolEffect(.pulse)
+
+                    Text(currentPhase.title)
+                        .font(.system(.largeTitle, design: .default, weight: .bold))
+                        .foregroundStyle(.white)
+
+                    Text("\(secondsRemaining)")
+                        .font(.system(size: 88, weight: .bold, design: .default))
+                        .foregroundStyle(.white)
+                        .contentTransition(.numericText())
+
+                    Text(sessionCaption)
+                        .font(.title3)
+                        .foregroundStyle(.white.opacity(0.72))
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 32)
+                .background(.white.opacity(0.08), in: .rect(cornerRadius: 34))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 34)
+                        .strokeBorder(.white.opacity(0.10), lineWidth: 1)
+                }
+
+                VStack(spacing: 12) {
+                    ProgressView(value: progressValue)
+                        .tint(.white)
+
+                    Text(progressLabel)
+                        .font(.subheadline)
+                        .foregroundStyle(.white.opacity(0.62))
+                }
+
+                Spacer()
+
+                Button(primaryButtonTitle) {
+                    if isSessionComplete {
+                        isPresented = false
+                    } else {
+                        isSessionRunning.toggle()
+                    }
+                }
+                .buttonStyle(SleepPrimaryButtonStyle())
+            }
+            .padding(.horizontal, 22)
+            .padding(.top, 18)
+            .padding(.bottom, 24)
+        }
+        .task {
+            while !Task.isCancelled {
+                guard isSessionRunning, !isSessionComplete else {
+                    do {
+                        try await Task.sleep(for: .milliseconds(200))
+                    } catch {
+                        return
+                    }
+                    continue
+                }
+
+                do {
+                    try await Task.sleep(for: .seconds(1))
+                } catch {
+                    return
+                }
+
+                guard isSessionRunning else {
+                    continue
+                }
+
+                tickSession()
+            }
+        }
+    }
+
+    private var currentPhase: (title: String, seconds: Int, symbol: String) {
+        phases[currentPhaseIndex]
+    }
+
+    private var progressValue: Double {
+        let totalPhaseCount: Int = totalCycles * phases.count
+        let completedPhaseCount: Int = completedCycles * phases.count + currentPhaseIndex
+        return Double(completedPhaseCount) / Double(totalPhaseCount)
+    }
+
+    private var progressLabel: String {
+        if isSessionComplete {
+            return "Session complete"
+        }
+
+        return "Cycle \(completedCycles + 1) of \(totalCycles)"
+    }
+
+    private var sessionCaption: String {
+        if isSessionComplete {
+            return "Nice. Your breath is slower, your exhale is longer, and your body has a calmer runway into sleep."
+        }
+
+        return "Follow the count and let your shoulders drop on every exhale."
+    }
+
+    private var primaryButtonTitle: String {
+        if isSessionComplete {
+            return "Done"
+        }
+
+        return isSessionRunning ? "Pause" : (completedCycles == 0 && currentPhaseIndex == 0 ? "Begin Session" : "Resume")
+    }
+
+    private var isSessionComplete: Bool {
+        completedCycles >= totalCycles
+    }
+
+    private func tickSession() {
+        guard !isSessionComplete else {
+            isSessionRunning = false
+            return
+        }
+
+        if secondsRemaining > 1 {
+            secondsRemaining -= 1
+            return
+        }
+
+        if currentPhaseIndex < phases.count - 1 {
+            currentPhaseIndex += 1
+            secondsRemaining = phases[currentPhaseIndex].seconds
+            return
+        }
+
+        completedCycles += 1
+
+        if completedCycles >= totalCycles {
+            isSessionRunning = false
+            secondsRemaining = 0
+            currentPhaseIndex = phases.count - 1
+            return
+        }
+
+        currentPhaseIndex = 0
+        secondsRemaining = phases[0].seconds
     }
 }
 
