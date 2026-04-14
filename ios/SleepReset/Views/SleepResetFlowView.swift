@@ -1367,6 +1367,8 @@ private struct HomeStatCard: View {
 }
 
 private struct SleepSettingsView: View {
+    private let privacyURL: URL = URL(string: "https://paste.rs/c6Z6L")!
+    private let termsURL: URL = URL(string: "https://paste.rs/Jspqm")!
     let viewModel: SleepResetViewModel
 
     var body: some View {
@@ -1379,6 +1381,9 @@ private struct SleepSettingsView: View {
 
                 Section("Support") {
                     LabeledContent("Privacy", value: "Sleep data stays on-device")
+
+                    Link("Privacy Policy", destination: privacyURL)
+                    Link("Terms of Use", destination: termsURL)
 
                     Button("Restore Purchases") {
                         Task {
