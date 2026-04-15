@@ -1,5 +1,6 @@
 import SwiftUI
 import StoreKit
+import Foundation
 
 struct SleepResetFlowView: View {
     @State private var viewModel: SleepResetViewModel = SleepResetViewModel()
@@ -881,12 +882,35 @@ private struct SleepPaywallView: View {
                 }
             }
 
-            Text(selectedPricingLine)
-                .font(.caption)
-                .foregroundStyle(.white.opacity(0.64))
-                .frame(maxWidth: .infinity, alignment: .center)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Subscription details")
+                    .font(.headline)
+                    .foregroundStyle(.white)
+
+                Text(selectedProductSummary)
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.76))
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(autoRenewDisclosure)
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.64))
+                    .fixedSize(horizontal: false, vertical: true)
+
+                HStack(spacing: 16) {
+                    Link("Privacy Policy", destination: AppLegal.privacyPolicyURL)
+                    Link("Terms of Use", destination: AppLegal.termsOfUseURL)
+                }
+                .font(.caption.weight(.semibold))
+                .tint(.white)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(18)
+            .background(.white.opacity(0.08), in: .rect(cornerRadius: 24))
+            .overlay {
+                RoundedRectangle(cornerRadius: 24)
+                    .strokeBorder(.white.opacity(0.10), lineWidth: 1)
+            }
 
             Button {
                 Task {
@@ -936,6 +960,19 @@ private struct SleepPaywallView: View {
         case .yearly:
             "$49.99 yearly. No trial. Best long-term value. Renews automatically until canceled."
         }
+    }
+
+    private var selectedProductSummary: String {
+        switch viewModel.selectedProduct {
+        case .weekly:
+            "Weekly Reset — 1 week for $12.99. Full access to your reset plan, guided breathwork, and progress tracking."
+        case .yearly:
+            "Yearly Reset — 1 year for $49.99. Full access to your reset plan, guided breathwork, and progress tracking."
+        }
+    }
+
+    private var autoRenewDisclosure: String {
+        "Payment is charged to your Apple Account at confirmation of purchase. The subscription renews automatically unless it is canceled at least 24 hours before the end of the current period. You can manage or cancel anytime in your App Store account settings."
     }
 }
 
@@ -1367,8 +1404,6 @@ private struct HomeStatCard: View {
 }
 
 private struct SleepSettingsView: View {
-    private let privacyURL: URL = URL(string: "https://paste.rs/c6Z6L")!
-    private let termsURL: URL = URL(string: "https://paste.rs/Jspqm")!
     let viewModel: SleepResetViewModel
 
     var body: some View {
@@ -1382,8 +1417,8 @@ private struct SleepSettingsView: View {
                 Section("Support") {
                     LabeledContent("Privacy", value: "Sleep data stays on-device")
 
-                    Link("Privacy Policy", destination: privacyURL)
-                    Link("Terms of Use", destination: termsURL)
+                    Link("Privacy Policy", destination: AppLegal.privacyPolicyURL)
+                    Link("Terms of Use", destination: AppLegal.termsOfUseURL)
 
                     Button("Restore Purchases") {
                         Task {
@@ -1404,6 +1439,11 @@ private struct SleepSettingsView: View {
             .navigationTitle("Settings")
         }
     }
+}
+
+private enum AppLegal {
+    static let privacyPolicyURL: URL = URL(string: "https://paste.rs/c6Z6L")!
+    static let termsOfUseURL: URL = URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!
 }
 
 private struct SleepQuestionScreen<Content: View>: View {
