@@ -897,12 +897,20 @@ private struct SleepPaywallView: View {
                     .foregroundStyle(.white.opacity(0.64))
                     .fixedSize(horizontal: false, vertical: true)
 
-                HStack(spacing: 16) {
-                    Link("Privacy Policy", destination: AppLegal.privacyPolicyURL)
-                    Link("Terms of Use", destination: AppLegal.termsOfUseURL)
+                Text("By continuing, you can review our Privacy Policy and Terms of Use below.")
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.72))
+                    .fixedSize(horizontal: false, vertical: true)
+
+                HStack(spacing: 12) {
+                    Link(destination: AppLegal.privacyPolicyURL) {
+                        legalLinkLabel(title: "Privacy Policy", systemImage: "lock.doc")
+                    }
+
+                    Link(destination: AppLegal.termsOfUseURL) {
+                        legalLinkLabel(title: "Terms of Use", systemImage: "doc.text")
+                    }
                 }
-                .font(.caption.weight(.semibold))
-                .tint(.white)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(18)
@@ -973,6 +981,19 @@ private struct SleepPaywallView: View {
 
     private var autoRenewDisclosure: String {
         "Payment is charged to your Apple Account at confirmation of purchase. The subscription renews automatically unless it is canceled at least 24 hours before the end of the current period. You can manage or cancel anytime in your App Store account settings."
+    }
+
+    private func legalLinkLabel(title: String, systemImage: String) -> some View {
+        Label(title, systemImage: systemImage)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(.white.opacity(0.10), in: .capsule)
+            .overlay {
+                Capsule()
+                    .strokeBorder(.white.opacity(0.16), lineWidth: 1)
+            }
     }
 }
 
@@ -1444,6 +1465,7 @@ private struct SleepSettingsView: View {
 private enum AppLegal {
     static let privacyPolicyURL: URL = URL(string: "https://paste.rs/c6Z6L")!
     static let termsOfUseURL: URL = URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!
+    static let termsOfUseDescriptionURL: String = "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"
 }
 
 private struct SleepQuestionScreen<Content: View>: View {
