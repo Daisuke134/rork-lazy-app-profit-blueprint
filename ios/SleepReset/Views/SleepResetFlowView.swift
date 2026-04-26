@@ -730,7 +730,7 @@ private struct SleepResultView: View {
                     Spacer(minLength: 0)
 
                     Button("Unlock My Reset Plan") {
-                        viewModel.showReviewPrompt()
+                        viewModel.showPaywall()
                     }
                     .buttonStyle(SleepPrimaryButtonStyle())
                 }
@@ -745,7 +745,6 @@ private struct SleepResultView: View {
 
 private struct SleepReviewPromptView: View {
     let viewModel: SleepResetViewModel
-    @Environment(\.requestReview) private var requestReview
     @State private var reviewRequestTrigger: Bool = false
 
     var body: some View {
@@ -780,8 +779,6 @@ private struct SleepReviewPromptView: View {
                 Spacer()
 
                 Button("Continue") {
-                    requestNativeReviewPrompt()
-                    reviewRequestTrigger.toggle()
                     viewModel.continueFromReviewPrompt()
                 }
                 .buttonStyle(SleepPrimaryButtonStyle())
@@ -793,14 +790,14 @@ private struct SleepReviewPromptView: View {
         .toolbar(.hidden, for: .navigationBar)
         .navigationBarBackButtonHidden(true)
         .task {
+            guard viewModel.shouldRequestReviewPrompt() else { return }
             do {
-                try await Task.sleep(for: .milliseconds(650))
+                try await Task.sleep(for: .milliseconds(450))
             } catch {
                 return
             }
 
             requestNativeReviewPrompt()
-            requestReview()
             reviewRequestTrigger.toggle()
         }
         .sensoryFeedback(.impact, trigger: reviewRequestTrigger)

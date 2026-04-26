@@ -30,6 +30,7 @@ final class SleepResetViewModel {
     var paywallErrorMessage: String?
     var hasUnlockedPlan: Bool = false
     var breathworkSessions: [BreathworkSession] = []
+    private var hasRequestedReviewPrompt: Bool = false
 
     private let scoringService: SleepResetScoringService = SleepResetScoringService()
     private let analyticsService: AnalyticsService = AnalyticsService()
@@ -182,10 +183,7 @@ final class SleepResetViewModel {
         energyLevel = .okay
         disruption = .lateNights
         motivation = .ready
-        analyticsService.track(.onboardingComplete)
-        Task {
-            await analyze()
-        }
+        showReviewPrompt()
     }
 
     func continueFromEnergyLevel() {
@@ -282,7 +280,16 @@ final class SleepResetViewModel {
         if path.last == .reviewPrompt {
             _ = path.popLast()
         }
-        showPaywall()
+        analyticsService.track(.onboardingComplete)
+        Task {
+            await analyze()
+        }
+    }
+
+    func shouldRequestReviewPrompt() -> Bool {
+        guard !hasRequestedReviewPrompt else { return false }
+        hasRequestedReviewPrompt = true
+        return true
     }
 
     func purchaseSelectedPlan() async {
@@ -394,6 +401,7 @@ final class SleepResetViewModel {
         disruption = nil
         motivation = nil
         selectedProduct = .yearly
+        hasRequestedReviewPrompt = false
     }
 
     private func observeCustomerInfo() async {
