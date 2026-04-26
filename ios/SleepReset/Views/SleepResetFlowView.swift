@@ -756,19 +756,19 @@ private struct SleepReviewPromptView: View {
                 Spacer()
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Your reset plan is ready")
+                    Text("Give us a rating")
                         .font(.system(.largeTitle, design: .default, weight: .bold))
                         .foregroundStyle(.white)
 
-                    Text("If the score already feels useful, a quick App Store rating helps more people discover it.")
+                    Text("How are you enjoying Sleep Reset so far? A quick rating helps us keep improving your nightly reset experience.")
                         .font(.title3)
                         .foregroundStyle(.white.opacity(0.72))
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
                 VStack(alignment: .leading, spacing: 14) {
-                    SleepTimelineRow(icon: "star.bubble.fill", title: "Quick favor", subtitle: "iOS may show a review prompt here if Apple decides it’s the right time.")
-                    SleepTimelineRow(icon: "checkmark.seal.fill", title: "No extra step", subtitle: "Whether the prompt appears or not, your plan is still waiting on the next screen.")
+                    SleepTimelineRow(icon: "star.bubble.fill", title: "Quick favor", subtitle: "The App Store rating prompt should appear automatically on this screen.")
+                    SleepTimelineRow(icon: "checkmark.seal.fill", title: "Your plan is ready", subtitle: "After rating, continue to unlock the reset plan prepared from your answers.")
                 }
                 .padding(20)
                 .background(.white.opacity(0.08), in: .rect(cornerRadius: 28))
@@ -779,7 +779,7 @@ private struct SleepReviewPromptView: View {
 
                 Spacer()
 
-                Button("Continue to Subscription") {
+                Button("Continue") {
                     viewModel.continueFromReviewPrompt()
                 }
                 .buttonStyle(SleepPrimaryButtonStyle())
