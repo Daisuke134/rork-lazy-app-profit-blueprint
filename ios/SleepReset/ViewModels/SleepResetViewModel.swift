@@ -111,7 +111,7 @@ final class SleepResetViewModel {
     }
 
     private var questionStepCount: Int {
-        11
+        9
     }
 
     private var currentQuestionIndex: Int {
@@ -126,9 +126,6 @@ final class SleepResetViewModel {
         case .windDownStyle: 7
         case .bedtime: 8
         case .wakeTime: 9
-        case .energyLevel: 10
-        case .disruption: 11
-        case .motivation: 12
         default: 0
         }
     }
@@ -182,7 +179,13 @@ final class SleepResetViewModel {
     }
 
     func continueFromWakeTime() {
-        path.append(.energyLevel)
+        energyLevel = .okay
+        disruption = .lateNights
+        motivation = .ready
+        analyticsService.track(.onboardingComplete)
+        Task {
+            await analyze()
+        }
     }
 
     func continueFromEnergyLevel() {

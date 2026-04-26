@@ -818,8 +818,8 @@ private struct SleepPaywallView: View {
                 paywallLayout(spacing: 14, titleFont: .system(.largeTitle, design: .default, weight: .bold), subtitleFont: .body, featurePadding: 16)
                 paywallLayout(spacing: 10, titleFont: .system(.title, design: .default, weight: .bold), subtitleFont: .subheadline, featurePadding: 14)
             }
-            .frame(maxWidth: 620)
-            .frame(maxWidth: .infinity)
+            .frame(maxWidth: 620, maxHeight: .infinity)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(.horizontal, 20)
             .padding(.top, 12)
             .padding(.bottom, 12)
@@ -849,8 +849,6 @@ private struct SleepPaywallView: View {
 
     private func paywallLayout(spacing: CGFloat, titleFont: Font, subtitleFont: Font, featurePadding: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: spacing) {
-            Spacer(minLength: 0)
-
             VStack(alignment: .leading, spacing: 6) {
                 Text("Unlock your reset plan")
                     .font(titleFont)
@@ -887,6 +885,8 @@ private struct SleepPaywallView: View {
                     }
                 }
             }
+
+            Spacer(minLength: 8)
 
             Button {
                 Task {
