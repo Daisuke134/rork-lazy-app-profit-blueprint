@@ -746,7 +746,7 @@ private struct SleepResultView: View {
 private struct SleepReviewPromptView: View {
     let viewModel: SleepResetViewModel
     @Environment(\.requestReview) private var requestReview
-    @AppStorage("hasRequestedSleepResetReview") private var hasRequestedSleepResetReview: Bool = false
+    @State private var reviewRequestTrigger: Bool = false
 
     var body: some View {
         ZStack {
@@ -780,6 +780,8 @@ private struct SleepReviewPromptView: View {
                 Spacer()
 
                 Button("Continue") {
+                    requestNativeReviewPrompt()
+                    reviewRequestTrigger.toggle()
                     viewModel.continueFromReviewPrompt()
                 }
                 .buttonStyle(SleepPrimaryButtonStyle())
@@ -791,19 +793,26 @@ private struct SleepReviewPromptView: View {
         .toolbar(.hidden, for: .navigationBar)
         .navigationBarBackButtonHidden(true)
         .task {
-            guard !hasRequestedSleepResetReview else {
-                return
-            }
-
             do {
-                try await Task.sleep(for: .seconds(1))
+                try await Task.sleep(for: .milliseconds(650))
             } catch {
                 return
             }
 
+            requestNativeReviewPrompt()
             requestReview()
-            hasRequestedSleepResetReview = true
+            reviewRequestTrigger.toggle()
         }
+        .sensoryFeedback(.impact, trigger: reviewRequestTrigger)
+    }
+
+    private func requestNativeReviewPrompt() {
+        guard let scene = UIApplication.shared.connectedScenes
+            .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene else {
+            return
+        }
+
+        SKStoreReviewController.requestReview(in: scene)
     }
 }
 
