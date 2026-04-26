@@ -1482,36 +1482,37 @@ private struct SleepQuestionScreen<Content: View>: View {
         ZStack {
             SleepBackdropView(variant: variant)
 
-            VStack(alignment: .leading, spacing: 0) {
-                SleepTopProgressBar(progress: viewModel.onboardingProgress)
-                    .padding(.top, 8)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    SleepTopProgressBar(progress: viewModel.onboardingProgress)
+                        .padding(.top, 8)
 
-                Spacer(minLength: 24)
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(title)
+                            .font(.system(.largeTitle, design: .default, weight: .regular))
+                            .foregroundStyle(.white)
+                            .fixedSize(horizontal: false, vertical: true)
 
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(title)
-                        .font(.system(.largeTitle, design: .default, weight: .regular))
-                        .foregroundStyle(.white)
-                        .fixedSize(horizontal: false, vertical: true)
+                        Text(subtitle)
+                            .font(.title3)
+                            .foregroundStyle(.white.opacity(0.68))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.top, 18)
 
-                    Text(subtitle)
-                        .font(.title3)
-                        .foregroundStyle(.white.opacity(0.68))
-                        .fixedSize(horizontal: false, vertical: true)
+                    content
+
+                    Button(ctaTitle, action: action)
+                        .buttonStyle(SleepPrimaryButtonStyle())
+                        .disabled(!isCTAEnabled)
+                        .padding(.top, 4)
                 }
-
-                Spacer(minLength: 24)
-
-                content
-
-                Spacer()
-
-                Button(ctaTitle, action: action)
-                    .buttonStyle(SleepPrimaryButtonStyle())
-                    .disabled(!isCTAEnabled)
+                .frame(maxWidth: 620, alignment: .leading)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 22)
+                .padding(.bottom, 24)
             }
-            .padding(.horizontal, 22)
-            .padding(.bottom, 20)
+            .scrollIndicators(.hidden)
         }
         .toolbar(.hidden, for: .navigationBar)
     }
