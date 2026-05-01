@@ -653,90 +653,89 @@ private struct SleepResultView: View {
         ZStack {
             SleepBackdropView(variant: .slate)
 
-            VStack(alignment: .leading, spacing: 18) {
-                SleepTopProgressBar(progress: 0.92)
-                    .padding(.top, 8)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    SleepTopProgressBar(progress: 0.92)
+                        .padding(.top, 8)
 
-                Spacer(minLength: 12)
+                    if let result = viewModel.result {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Your sleep reset score")
+                                .font(.headline)
+                                .foregroundStyle(.white.opacity(0.58))
 
-                if let result = viewModel.result {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Your sleep reset score")
-                            .font(.headline)
-                            .foregroundStyle(.white.opacity(0.58))
+                            Text("\(result.score)")
+                                .font(.system(size: 88, weight: .bold, design: .default))
+                                .foregroundStyle(.white)
+                                .contentTransition(.numericText())
+                                .minimumScaleFactor(0.72)
 
-                        Text("\(result.score)")
-                            .font(.system(size: 96, weight: .bold, design: .default))
-                            .foregroundStyle(.white)
-                            .contentTransition(.numericText())
+                            Text(result.title)
+                                .font(.title2.weight(.semibold))
+                                .foregroundStyle(.white)
 
-                        Text(result.title)
-                            .font(.title2.weight(.semibold))
-                            .foregroundStyle(.white)
+                            Text(result.summary)
+                                .font(.body)
+                                .foregroundStyle(.white.opacity(0.7))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(22)
+                        .background(.white.opacity(0.08), in: .rect(cornerRadius: 34))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 34)
+                                .strokeBorder(.white.opacity(0.12), lineWidth: 1)
+                        }
 
-                        Text(result.summary)
-                            .font(.body)
-                            .foregroundStyle(.white.opacity(0.7))
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .padding(24)
-                    .background(.white.opacity(0.08), in: .rect(cornerRadius: 34))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 34)
-                            .strokeBorder(.white.opacity(0.12), lineWidth: 1)
-                    }
-
-                    HStack(spacing: 12) {
-                        ForEach(result.pillars) { pillar in
-                            VStack(alignment: .leading, spacing: 10) {
-                                Image(systemName: pillar.icon)
-                                    .font(.headline)
-                                    .foregroundStyle(.white)
-                                Text("\(pillar.value)")
-                                    .font(.title2.weight(.semibold))
-                                    .foregroundStyle(.white)
-                                Text(pillar.title)
-                                    .font(.caption)
-                                    .foregroundStyle(.white.opacity(0.58))
+                        ViewThatFits {
+                            HStack(spacing: 12) {
+                                ForEach(result.pillars) { pillar in
+                                    ResultPillarCard(pillar: pillar)
+                                }
                             }
-                            .frame(maxWidth: .infinity, minHeight: 112, alignment: .topLeading)
-                            .padding(16)
-                            .background(.white.opacity(0.08), in: .rect(cornerRadius: 24))
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 24)
-                                    .strokeBorder(.white.opacity(0.12), lineWidth: 1)
+
+                            VStack(spacing: 12) {
+                                ForEach(result.pillars) { pillar in
+                                    ResultPillarCard(pillar: pillar)
+                                }
                             }
                         }
-                    }
 
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Main driver")
-                            .font(.headline)
-                            .foregroundStyle(.white.opacity(0.58))
-                        Text(viewModel.disruption?.headline ?? "Your reset plan is calibrated around the biggest source of sleep friction right now.")
-                            .font(.title3.weight(.medium))
-                            .foregroundStyle(.white)
-                        Text(result.recoveryOutlook)
-                            .font(.subheadline)
-                            .foregroundStyle(.white.opacity(0.68))
-                    }
-                    .padding(18)
-                    .background(.white.opacity(0.08), in: .rect(cornerRadius: 24))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 24)
-                            .strokeBorder(.white.opacity(0.12), lineWidth: 1)
-                    }
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Main driver")
+                                .font(.headline)
+                                .foregroundStyle(.white.opacity(0.58))
+                            Text(viewModel.disruption?.headline ?? "Your reset plan is calibrated around the biggest source of sleep friction right now.")
+                                .font(.title3.weight(.medium))
+                                .foregroundStyle(.white)
+                            Text(result.recoveryOutlook)
+                                .font(.subheadline)
+                                .foregroundStyle(.white.opacity(0.68))
+                        }
+                        .padding(18)
+                        .background(.white.opacity(0.08), in: .rect(cornerRadius: 24))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 24)
+                                .strokeBorder(.white.opacity(0.12), lineWidth: 1)
+                        }
 
-                    Spacer(minLength: 0)
+                        Text("Personalized reset plan requires a subscription. Purchase is separate from the free score shown here.")
+                            .font(.footnote.weight(.medium))
+                            .foregroundStyle(.white.opacity(0.62))
+                            .fixedSize(horizontal: false, vertical: true)
 
-                    Button("Unlock My Reset Plan") {
-                        viewModel.showPaywall()
+                        Button("Unlock My Reset Plan") {
+                            viewModel.showPaywall()
+                        }
+                        .buttonStyle(SleepPrimaryButtonStyle())
                     }
-                    .buttonStyle(SleepPrimaryButtonStyle())
                 }
+                .frame(maxWidth: 620, alignment: .leading)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 22)
+                .padding(.top, 18)
+                .padding(.bottom, 28)
             }
-            .padding(.horizontal, 22)
-            .padding(.bottom, 20)
+            .scrollIndicators(.hidden)
         }
         .toolbar(.hidden, for: .navigationBar)
         .navigationBarBackButtonHidden(true)
@@ -894,24 +893,32 @@ private struct SleepPaywallView: View {
 
             Spacer(minLength: 8)
 
-            Button {
-                Task {
-                    await viewModel.purchaseSelectedPlan()
-                }
-            } label: {
-                HStack(spacing: 10) {
-                    if viewModel.isPurchasing {
-                        ProgressView()
-                            .tint(.black.opacity(0.72))
+            VStack(spacing: 8) {
+                Button {
+                    Task {
+                        await viewModel.purchaseSelectedPlan()
                     }
+                } label: {
+                    HStack(spacing: 10) {
+                        if viewModel.isPurchasing {
+                            ProgressView()
+                                .tint(.black.opacity(0.72))
+                        }
 
-                    Text(viewModel.isPurchasing ? "Processing..." : purchaseButtonTitle)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
+                        Text(viewModel.isPurchasing ? "Processing..." : purchaseButtonTitle)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                    }
                 }
+                .buttonStyle(SleepAccentButtonStyle())
+                .disabled(viewModel.isPurchasing || viewModel.isLoadingProducts)
+
+                Text("Subscription required for the personalized reset plan. The free score remains available without purchase.")
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(.white.opacity(0.58))
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .buttonStyle(SleepAccentButtonStyle())
-            .disabled(viewModel.isPurchasing || viewModel.isLoadingProducts)
 
             HStack(spacing: 10) {
                 Link("Privacy Policy", destination: AppLegal.privacyPolicyURL)
@@ -943,9 +950,34 @@ private struct SleepPaywallView: View {
     private var purchaseButtonTitle: String {
         switch viewModel.selectedProduct {
         case .weekly:
-            "Continue with $12.99/week"
+            "Continue with \(viewModel.localizedPrice(for: .weekly))/week"
         case .yearly:
-            "Continue with $49.99/year"
+            "Continue with \(viewModel.localizedPrice(for: .yearly))/year"
+        }
+    }
+}
+
+private struct ResultPillarCard: View {
+    let pillar: ScorePillar
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Image(systemName: pillar.icon)
+                .font(.headline)
+                .foregroundStyle(.white)
+            Text("\(pillar.value)")
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(.white)
+            Text(pillar.title)
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.58))
+        }
+        .frame(maxWidth: .infinity, minHeight: 96, alignment: .topLeading)
+        .padding(16)
+        .background(.white.opacity(0.08), in: .rect(cornerRadius: 24))
+        .overlay {
+            RoundedRectangle(cornerRadius: 24)
+                .strokeBorder(.white.opacity(0.12), lineWidth: 1)
         }
     }
 }
@@ -988,7 +1020,7 @@ private struct SubscriptionOptionCard: View {
 
                 Spacer(minLength: 8)
 
-                Text(product.rawValue)
+                Text(product.displayPrice)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.trailing)

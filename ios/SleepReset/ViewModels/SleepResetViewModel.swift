@@ -293,6 +293,10 @@ final class SleepResetViewModel {
     }
 
     func purchaseSelectedPlan() async {
+        if currentOffering == nil {
+            await loadOffering()
+        }
+
         guard let package = selectedPackage else {
             paywallErrorMessage = "Subscription options are still loading. Please try again in a moment."
             return
@@ -317,6 +321,8 @@ final class SleepResetViewModel {
             }
         } catch ErrorCode.purchaseCancelledError {
             return
+        } catch ErrorCode.paymentPendingError {
+            paywallErrorMessage = "Your purchase is pending approval or additional verification. We'll unlock the plan automatically once Apple completes it."
         } catch {
             paywallErrorMessage = error.localizedDescription
         }
@@ -348,7 +354,7 @@ final class SleepResetViewModel {
 
         do {
             let offerings = try await Purchases.shared.offerings()
-            currentOffering = offerings.current
+            currentOffering = offerings.current ?? offerings.all["default"] ?? offerings.all.values.first
         } catch {
             paywallErrorMessage = error.localizedDescription
         }
@@ -368,6 +374,10 @@ final class SleepResetViewModel {
 
     func clearPaywallError() {
         paywallErrorMessage = nil
+    }
+
+    func localizedPrice(for product: SubscriptionProduct) -> String {
+        package(for: product)?.localizedPriceString ?? product.displayPrice
     }
 
     func recordBreathworkSession(completedCycles: Int, totalCycles: Int, durationSeconds: Int) {
@@ -416,19 +426,23 @@ final class SleepResetViewModel {
     }
 
     private var selectedPackage: Package? {
+        package(for: selectedProduct)
+    }
+
+    private func package(for product: SubscriptionProduct) -> Package? {
         guard let currentOffering else {
             return nil
         }
 
-        switch selectedProduct {
+        switch product {
         case .weekly:
             return currentOffering.weekly
             ?? currentOffering.availablePackages.first(where: { $0.packageType == .weekly })
-            ?? currentOffering.availablePackages.first(where: { $0.storeProduct.productIdentifier == selectedProduct.revenueCatProductID })
+            ?? currentOffering.availablePackages.first(where: { $0.storeProduct.productIdentifier == product.revenueCatProductID })
         case .yearly:
             return currentOffering.annual
             ?? currentOffering.availablePackages.first(where: { $0.packageType == .annual })
-            ?? currentOffering.availablePackages.first(where: { $0.storeProduct.productIdentifier == selectedProduct.revenueCatProductID })
+            ?? currentOffering.availablePackages.first(where: { $0.storeProduct.productIdentifier == product.revenueCatProductID })
         }
     }
 

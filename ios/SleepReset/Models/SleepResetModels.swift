@@ -462,8 +462,8 @@ nonisolated enum MotivationLevel: String, CaseIterable, Identifiable, Sendable {
 }
 
 nonisolated enum SubscriptionProduct: String, CaseIterable, Identifiable, Sendable {
-    case weekly = "$12.99/week"
-    case yearly = "$49.99/year"
+    case weekly = "Weekly"
+    case yearly = "Yearly"
 
     var id: String { rawValue }
 
@@ -482,6 +482,15 @@ nonisolated enum SubscriptionProduct: String, CaseIterable, Identifiable, Sendab
             "Flexible access with weekly billing"
         case .yearly:
             "Lowest effective price with yearly billing"
+        }
+    }
+
+    var displayPrice: String {
+        switch self {
+        case .weekly:
+            "$12.99/week"
+        case .yearly:
+            "$49.99/year"
         }
     }
 
