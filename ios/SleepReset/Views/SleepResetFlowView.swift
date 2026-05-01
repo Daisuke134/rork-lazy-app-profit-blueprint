@@ -884,6 +884,7 @@ private struct SleepPaywallView: View {
                 ForEach(SubscriptionProduct.allCases) { product in
                     SubscriptionOptionCard(
                         product: product,
+                        priceText: viewModel.localizedPrice(for: product),
                         isSelected: viewModel.selectedProduct == product
                     ) {
                         viewModel.selectedProduct = product
@@ -913,7 +914,7 @@ private struct SleepPaywallView: View {
                 .buttonStyle(SleepAccentButtonStyle())
                 .disabled(viewModel.isPurchasing || viewModel.isLoadingProducts)
 
-                Text("Subscription required for the personalized reset plan. The free score remains available without purchase.")
+                Text("Both plans include 3 days free, then renew at the shown price unless canceled. Subscription required for the personalized reset plan. The free score remains available without purchase.")
                     .font(.caption2.weight(.medium))
                     .foregroundStyle(.white.opacity(0.58))
                     .multilineTextAlignment(.center)
@@ -948,12 +949,7 @@ private struct SleepPaywallView: View {
     }
 
     private var purchaseButtonTitle: String {
-        switch viewModel.selectedProduct {
-        case .weekly:
-            "Continue with \(viewModel.localizedPrice(for: .weekly))/week"
-        case .yearly:
-            "Continue with \(viewModel.localizedPrice(for: .yearly))/year"
-        }
+        "Start for free"
     }
 }
 
@@ -984,6 +980,7 @@ private struct ResultPillarCard: View {
 
 private struct SubscriptionOptionCard: View {
     let product: SubscriptionProduct
+    let priceText: String
     let isSelected: Bool
     let action: () -> Void
 
@@ -1012,20 +1009,35 @@ private struct SubscriptionOptionCard: View {
                         }
                     }
 
-                    Text(product.subtitle)
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.64))
-                        .fixedSize(horizontal: false, vertical: true)
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(product.trialBadge)
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(.black.opacity(0.76))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(.white.opacity(0.92), in: .capsule)
+
+                        Text(product.subtitle)
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.64))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
 
                 Spacer(minLength: 8)
 
-                Text(product.displayPrice)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .multilineTextAlignment(.trailing)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.8)
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("After trial")
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(.white.opacity(0.58))
+
+                    Text(priceText)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .multilineTextAlignment(.trailing)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.8)
+                }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 14)

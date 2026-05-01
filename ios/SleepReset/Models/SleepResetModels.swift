@@ -479,10 +479,14 @@ nonisolated enum SubscriptionProduct: String, CaseIterable, Identifiable, Sendab
     var subtitle: String {
         switch self {
         case .weekly:
-            "Flexible access with weekly billing"
+            "3 days free, then weekly billing"
         case .yearly:
-            "Lowest effective price with yearly billing"
+            "3 days free, then yearly billing"
         }
+    }
+
+    var trialBadge: String {
+        "3 days free"
     }
 
     var displayPrice: String {
