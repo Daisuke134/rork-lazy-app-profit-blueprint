@@ -836,6 +836,9 @@ private struct SleepPaywallView: View {
                 await viewModel.loadOffering()
             }
         }
+        .onDisappear {
+            viewModel.trackPaywallClosed()
+        }
         .alert("Subscription Error", isPresented: Binding(
             get: { viewModel.paywallErrorMessage != nil },
             set: { isPresented in
@@ -881,13 +884,26 @@ private struct SleepPaywallView: View {
             }
 
             VStack(spacing: 10) {
-                ForEach(SubscriptionProduct.allCases) { product in
-                    SubscriptionOptionCard(
-                        product: product,
-                        priceText: viewModel.localizedPrice(for: product),
-                        isSelected: viewModel.selectedProduct == product
-                    ) {
-                        viewModel.selectedProduct = product
+                if viewModel.currentOffering == nil && !viewModel.isLoadingProducts {
+                    Button("Couldn't load plans. Tap to retry") {
+                        Task {
+                            await viewModel.loadOffering()
+                        }
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                } else {
+                    ForEach(SubscriptionProduct.allCases) { product in
+                        SubscriptionOptionCard(
+                            product: product,
+                            priceText: viewModel.localizedPrice(for: product),
+                            perWeekText: viewModel.perWeekPrice(for: product),
+                            showsTrial: viewModel.isTrialEligible(product),
+                            isSelected: viewModel.selectedProduct == product
+                        ) {
+                            viewModel.selectedProduct = product
+                        }
                     }
                 }
             }
@@ -912,9 +928,9 @@ private struct SleepPaywallView: View {
                     }
                 }
                 .buttonStyle(SleepAccentButtonStyle())
-                .disabled(viewModel.isPurchasing || viewModel.isLoadingProducts)
+                .disabled(viewModel.isPurchasing || viewModel.isLoadingProducts || viewModel.currentOffering == nil)
 
-                Text("Both plans include 3 days free, then renew at the shown price unless canceled. Subscription required for the personalized reset plan. The free score remains available without purchase.")
+                Text(finePrint)
                     .font(.caption2.weight(.medium))
                     .foregroundStyle(.white.opacity(0.58))
                     .multilineTextAlignment(.center)
@@ -949,7 +965,14 @@ private struct SleepPaywallView: View {
     }
 
     private var purchaseButtonTitle: String {
-        "Start for free"
+        viewModel.isTrialEligible(viewModel.selectedProduct) ? "Start 3 days free" : "Continue"
+    }
+
+    private var finePrint: String {
+        let renewal: String = viewModel.isTrialEligible(viewModel.selectedProduct)
+            ? "3 days free, then renews at the shown price unless canceled at least 24 hours before the trial ends."
+            : "Renews at the shown price unless canceled at least 24 hours before the period ends."
+        return renewal + " Subscription required for the personalized reset plan. The free score remains available without purchase."
     }
 }
 
@@ -980,7 +1003,9 @@ private struct ResultPillarCard: View {
 
 private struct SubscriptionOptionCard: View {
     let product: SubscriptionProduct
-    let priceText: String
+    let priceText: String?
+    let perWeekText: String?
+    let showsTrial: Bool
     let isSelected: Bool
     let action: () -> Void
 
@@ -1010,12 +1035,14 @@ private struct SubscriptionOptionCard: View {
                     }
 
                     VStack(alignment: .leading, spacing: 5) {
-                        Text(product.trialBadge)
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(.black.opacity(0.76))
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
-                            .background(.white.opacity(0.92), in: .capsule)
+                        if showsTrial {
+                            Text(product.trialBadge)
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(.black.opacity(0.76))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(.white.opacity(0.92), in: .capsule)
+                        }
 
                         Text(product.subtitle)
                             .font(.caption)
@@ -1027,16 +1054,29 @@ private struct SubscriptionOptionCard: View {
                 Spacer(minLength: 8)
 
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text("After trial")
-                        .font(.caption2.weight(.medium))
-                        .foregroundStyle(.white.opacity(0.58))
+                    if let perWeekText {
+                        Text("\(perWeekText)/week")
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                    } else if showsTrial {
+                        Text("After trial")
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(.white.opacity(0.58))
+                    }
 
-                    Text(priceText)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .multilineTextAlignment(.trailing)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.8)
+                    if let priceText {
+                        Text(priceText)
+                            .font(perWeekText == nil ? .subheadline.weight(.semibold) : .caption.weight(.medium))
+                            .foregroundStyle(.white.opacity(perWeekText == nil ? 1 : 0.72))
+                            .multilineTextAlignment(.trailing)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.8)
+                    } else {
+                        ProgressView()
+                            .tint(.white)
+                    }
                 }
             }
             .padding(.horizontal, 16)

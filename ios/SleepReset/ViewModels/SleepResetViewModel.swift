@@ -24,6 +24,7 @@ final class SleepResetViewModel {
     var plan: ResetPlan?
     var selectedProduct: SubscriptionProduct = .yearly
     var currentOffering: Offering?
+    var trialEligibleProductIDs: Set<String> = []
     var isAnalyzing: Bool = false
     var isLoadingProducts: Bool = false
     var isPurchasing: Bool = false
@@ -355,6 +356,7 @@ final class SleepResetViewModel {
         do {
             let offerings = try await Purchases.shared.offerings()
             currentOffering = offerings.current ?? offerings.all["default"] ?? offerings.all.values.first
+            await refreshTrialEligibility()
         } catch {
             paywallErrorMessage = error.localizedDescription
         }
@@ -376,8 +378,44 @@ final class SleepResetViewModel {
         paywallErrorMessage = nil
     }
 
-    func localizedPrice(for product: SubscriptionProduct) -> String {
-        package(for: product)?.localizedPriceString ?? product.displayPrice
+    /// Store price only; nil while offerings are unavailable (never a hard-coded fallback).
+    func localizedPrice(for product: SubscriptionProduct) -> String? {
+        guard let storeProduct = package(for: product)?.storeProduct else { return nil }
+        switch product {
+        case .weekly:
+            return "\(storeProduct.localizedPriceString)/week"
+        case .yearly:
+            return "\(storeProduct.localizedPriceString)/year"
+        }
+    }
+
+    /// Yearly price expressed per week (US $39.99/year ≈ $0.77/week).
+    func perWeekPrice(for product: SubscriptionProduct) -> String? {
+        guard product == .yearly else { return nil }
+        return package(for: product)?.storeProduct.localizedPricePerWeek
+    }
+
+    func isTrialEligible(_ product: SubscriptionProduct) -> Bool {
+        guard let identifier = package(for: product)?.storeProduct.productIdentifier else { return false }
+        return trialEligibleProductIDs.contains(identifier)
+    }
+
+    func trackPaywallClosed() {
+        guard !hasUnlockedPlan else { return }
+        analyticsService.track(.paywallClosed, properties: ["product": selectedProduct.title])
+    }
+
+    private func refreshTrialEligibility() async {
+        let packages: [Package] = SubscriptionProduct.allCases.compactMap { package(for: $0) }
+        let withTrial: [String] = packages
+            .filter { $0.storeProduct.introductoryDiscount?.paymentMode == .freeTrial }
+            .map { $0.storeProduct.productIdentifier }
+        guard !withTrial.isEmpty else {
+            trialEligibleProductIDs = []
+            return
+        }
+        let eligibility = await Purchases.shared.checkTrialOrIntroDiscountEligibility(productIdentifiers: withTrial)
+        trialEligibleProductIDs = Set(eligibility.filter { $0.value.status != .ineligible }.map(\.key))
     }
 
     func recordBreathworkSession(completedCycles: Int, totalCycles: Int, durationSeconds: Int) {

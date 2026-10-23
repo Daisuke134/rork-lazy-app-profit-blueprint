@@ -1,4 +1,5 @@
 import Foundation
+import RevenueCat
 
 nonisolated enum AnalyticsEvent: String, Sendable {
     case appOpen = "app_open"
@@ -8,6 +9,7 @@ nonisolated enum AnalyticsEvent: String, Sendable {
     case paywallViewed = "paywall_viewed"
     case checkoutStarted = "checkout_started"
     case subscriptionPurchased = "subscription_purchased"
+    case paywallClosed = "paywall_closed"
 }
 
 nonisolated struct AnalyticsService: Sendable {
@@ -26,5 +28,13 @@ nonisolated struct AnalyticsService: Sendable {
         }
 
         print("Analytics: \(eventName)\(propertySummary)")
+
+        // Funnel counts land on the RevenueCat customer (free, no extra SDK): last time each step happened.
+        guard Purchases.isConfigured else { return }
+        var attributes: [String: String] = ["\(eventName)_at": ISO8601DateFormatter().string(from: .now)]
+        if let product = properties["product"] {
+            attributes["\(eventName)_product"] = product
+        }
+        Purchases.shared.attribution.setAttributes(attributes)
     }
 }
