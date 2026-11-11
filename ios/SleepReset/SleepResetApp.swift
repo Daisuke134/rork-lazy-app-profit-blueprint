@@ -18,6 +18,15 @@ struct SleepResetApp: App {
         #else
         Purchases.configure(withAPIKey: Config.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY)
         #endif
+
+        // Mixpanel (shared spec: kpi-churn-event-spec-2026-11-11 §3.2/§3.3).
+        // Token is delivered via the INFOPLIST_KEY_MIXPANEL_TOKEN build setting
+        // because this repo's Config type is generated outside the repo.
+        AnalyticsService.shared.configure(token: Bundle.main.object(forInfoDictionaryKey: "MIXPANEL_TOKEN") as? String ?? "")
+        // Link client events with RevenueCat's server-side rc_* events.
+        if let distinctId = AnalyticsService.shared.distinctId {
+            Purchases.shared.setAttributes(["$mixpanel_distinct_id": distinctId])
+        }
     }
 
     var sharedModelContainer: ModelContainer = {

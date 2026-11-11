@@ -33,11 +33,11 @@ final class SleepResetViewModel {
     private var hasRequestedReviewPrompt: Bool = false
 
     private let scoringService: SleepResetScoringService = SleepResetScoringService()
-    private let analyticsService: AnalyticsService = AnalyticsService()
+    private let analyticsService: AnalyticsService = .shared
     private let defaults: UserDefaults = .standard
 
     init() {
-        analyticsService.track(.appOpen)
+        analyticsService.trackAppOpened()
         loadBreathworkSessions()
         Task {
             await refreshSubscriptionState()
@@ -132,6 +132,7 @@ final class SleepResetViewModel {
     }
 
     func start() {
+        analyticsService.trackOnboardingStarted()
         path = [.goals]
     }
 
@@ -180,6 +181,8 @@ final class SleepResetViewModel {
     }
 
     func continueFromWakeTime() {
+        // Quick path into the flow (skips the question sequence).
+        analyticsService.trackOnboardingStarted()
         energyLevel = .okay
         disruption = .lateNights
         motivation = .ready
@@ -198,7 +201,7 @@ final class SleepResetViewModel {
 
     func continueFromMotivation() {
         guard motivation != nil else { return }
-        analyticsService.track(.onboardingComplete)
+        analyticsService.trackOnboardingCompleted()
         Task {
             await analyze()
         }
@@ -220,7 +223,6 @@ final class SleepResetViewModel {
         }
 
         isAnalyzing = true
-        analyticsService.track(.scoreStarted)
         path.append(.analyzing)
 
         do {
@@ -262,7 +264,9 @@ final class SleepResetViewModel {
             _ = path.popLast()
         }
         path.append(.result)
-        analyticsService.track(.scoreRevealed, properties: ["score": "\(result.score)"])
+        // Spec §3.4 (closest mapping): this app has no audio program playback;
+        // its core result is the sleep score reveal.
+        analyticsService.trackCoreResultViewed(resultType: "sleep_score")
     }
 
     func showReviewPrompt() {
@@ -273,14 +277,14 @@ final class SleepResetViewModel {
     func showPaywall() {
         guard path.last != .paywall else { return }
         path.append(.paywall)
-        analyticsService.track(.paywallViewed)
+        analyticsService.trackPaywallShown(paywallId: "sleep_reset_paywall_v1", placement: "post_result")
     }
 
     func continueFromReviewPrompt() {
         if path.last == .reviewPrompt {
             _ = path.popLast()
         }
-        analyticsService.track(.onboardingComplete)
+        analyticsService.trackOnboardingCompleted()
         Task {
             await analyze()
         }
@@ -302,29 +306,69 @@ final class SleepResetViewModel {
             return
         }
 
-        analyticsService.track(.checkoutStarted, properties: ["product": selectedProduct.title])
+        let productId = package.storeProduct.productIdentifier
+        analyticsService.trackPurchaseStarted(
+            productId: productId,
+            price: NSDecimalNumber(decimal: package.storeProduct.price).doubleValue,
+            currency: package.storeProduct.currencyCode ?? "unknown",
+            period: Self.periodName(for: package),
+            trialEligible: package.storeProduct.introductoryDiscount != nil
+        )
         isPurchasing = true
         defer { isPurchasing = false }
 
         do {
             let result = try await Purchases.shared.purchase(package: package)
             guard !result.userCancelled else {
+                analyticsService.trackPurchaseCancelled(productId: productId)
                 return
             }
 
-            let isPremium: Bool = result.customerInfo.entitlements["premium"]?.isActive == true
+            let entitlement = result.customerInfo.entitlements["premium"]
+            let isPremium: Bool = entitlement?.isActive == true
             hasUnlockedPlan = isPremium
 
             if isPremium {
-                analyticsService.track(.subscriptionPurchased, properties: ["product": selectedProduct.title])
+                // Auxiliary client record; ground truth is RC's rc_* events (spec §3.5).
+                analyticsService.trackPurchaseCompleted(productId: productId)
+                if entitlement?.periodType == .trial {
+                    analyticsService.trackTrialStarted(
+                        productId: productId,
+                        trialDays: Self.trialDays(for: package.storeProduct)
+                    )
+                }
                 path = [.dashboard]
             }
         } catch ErrorCode.purchaseCancelledError {
+            analyticsService.trackPurchaseCancelled(productId: productId)
             return
         } catch ErrorCode.paymentPendingError {
+            analyticsService.trackPurchaseFailed(productId: productId, errorCode: "payment_pending")
             paywallErrorMessage = "Your purchase is pending approval or additional verification. We'll unlock the plan automatically once Apple completes it."
         } catch {
+            analyticsService.trackPurchaseFailed(productId: productId, errorCode: "\((error as NSError).code)")
             paywallErrorMessage = error.localizedDescription
+        }
+    }
+
+    private static func periodName(for package: Package) -> String {
+        switch package.packageType {
+        case .weekly: return "week"
+        case .monthly: return "month"
+        case .annual: return "year"
+        case .lifetime: return "lifetime"
+        default: return "custom"
+        }
+    }
+
+    private static func trialDays(for product: StoreProduct) -> Int {
+        guard let period = product.introductoryDiscount?.subscriptionPeriod else { return 0 }
+        switch period.unit {
+        case .day: return period.value
+        case .week: return period.value * 7
+        case .month: return period.value * 30
+        case .year: return period.value * 365
+        @unknown default: return period.value
         }
     }
 
@@ -338,7 +382,7 @@ final class SleepResetViewModel {
             hasUnlockedPlan = isPremium
 
             if isPremium {
-                analyticsService.track(.subscriptionPurchased, properties: ["product": "restored"])
+                // Restore is not part of the spec §3.3 common event list; no event fired.
                 path = [.dashboard]
             } else {
                 paywallErrorMessage = "No active subscription was found to restore."

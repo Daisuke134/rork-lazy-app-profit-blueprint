@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		2695FE4EE018474C8FEEF342 /* Mixpanel in Frameworks */ = {isa = PBXBuildFile; productRef = BC491B7753FF443F9C8A4E88 /* Mixpanel */; };
 		XX298127CFBB2CF3FA631BXX /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = XXDCC169DE7B2F3C1C8B10XX /* RevenueCat */; };
 /* End PBXBuildFile section */
 
@@ -38,6 +39,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2695FE4EE018474C8FEEF342 /* Mixpanel in Frameworks */,
 				XX298127CFBB2CF3FA631BXX /* RevenueCat in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -117,6 +119,7 @@
 			);
 			name = SleepReset;
 			packageProductDependencies = (
+				BC491B7753FF443F9C8A4E88 /* Mixpanel */,
 				XXDCC169DE7B2F3C1C8B10XX /* RevenueCat */,
 			);
 			productName = SleepReset;
@@ -211,6 +214,7 @@
 				105FC5922E9EAD3200EA8BCF /* SleepResetUITests */,
 			);
 			packageReferences = (
+				382D8BB6C639426C8BF8B730 /* XCRemoteSwiftPackageReference "mixpanel-swift" */,
 				XX4AC81916604C4344ADC0XX /* XCRemoteSwiftPackageReference "purchases-ios-spm" */,
 			);
 		};
@@ -409,6 +413,7 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_MIXPANEL_TOKEN = 96835bddc4fd0f2613e805d98c5915cd;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -442,6 +447,7 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_MIXPANEL_TOKEN = 96835bddc4fd0f2613e805d98c5915cd;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -473,6 +479,7 @@
 				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_MIXPANEL_TOKEN = 96835bddc4fd0f2613e805d98c5915cd;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = app.rork.vcinrjbl3ke00f07gtlzf.tests;
@@ -495,6 +502,7 @@
 				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_MIXPANEL_TOKEN = 96835bddc4fd0f2613e805d98c5915cd;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = app.rork.vcinrjbl3ke00f07gtlzf.tests;
@@ -516,6 +524,7 @@
 				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_MIXPANEL_TOKEN = 96835bddc4fd0f2613e805d98c5915cd;
 				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = app.rork.vcinrjbl3ke00f07gtlzf.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -536,6 +545,7 @@
 				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_MIXPANEL_TOKEN = 96835bddc4fd0f2613e805d98c5915cd;
 				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = app.rork.vcinrjbl3ke00f07gtlzf.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -591,6 +601,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		382D8BB6C639426C8BF8B730 /* XCRemoteSwiftPackageReference "mixpanel-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/mixpanel/mixpanel-swift";
+			requirement = {
+				kind = exactVersion;
+				version = 7.1.0;
+			};
+		};
 		XX4AC81916604C4344ADC0XX /* XCRemoteSwiftPackageReference "purchases-ios-spm" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/RevenueCat/purchases-ios-spm.git";
@@ -602,6 +620,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		BC491B7753FF443F9C8A4E88 /* Mixpanel */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 382D8BB6C639426C8BF8B730 /* XCRemoteSwiftPackageReference "mixpanel-swift" */;
+			productName = Mixpanel;
+		};
 		XXDCC169DE7B2F3C1C8B10XX /* RevenueCat */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = XX4AC81916604C4344ADC0XX /* XCRemoteSwiftPackageReference "purchases-ios-spm" */;
