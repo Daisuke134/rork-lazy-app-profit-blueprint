@@ -1,0 +1,90 @@
+name: App Store Build (Sleep Reset)
+
+on:
+  workflow_dispatch:
+    inputs:
+      marketing_version:
+        description: "MARKETING_VERSION to build"
+        required: true
+        default: "1.0.3"
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Install App Store Connect API key
+        env:
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          printf '%s' "$ASC_PRIVATE_KEY" > ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
+          chmod 600 ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
+
+      - name: Archive
+        working-directory: ios
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          set -o pipefail
+          BUILD_NUMBER=$(TZ=Asia/Tokyo date +%Y%m%d%H%M)
+          echo "BUILD_NUMBER=${BUILD_NUMBER}" >> "$GITHUB_ENV"
+          echo "Building version ${{ inputs.marketing_version }} build ${BUILD_NUMBER}"
+          KEY_PATH=~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
+          xcodebuild archive \
+            -project SleepReset.xcodeproj \
+            -scheme SleepReset \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$PWD/build/SleepReset.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            DEVELOPMENT_TEAM=S5U8UH3JLJ \
+            MARKETING_VERSION=${{ inputs.marketing_version }} \
+            CURRENT_PROJECT_VERSION=${BUILD_NUMBER} \
+            2>&1 | tee archive.log | tail -30
+
+      - name: Export IPA
+        working-directory: ios
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          set -o pipefail
+          KEY_PATH=~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
+          xcodebuild -exportArchive \
+            -archivePath "$PWD/build/SleepReset.xcarchive" \
+            -exportOptionsPlist "$PWD/ExportOptions.CI.plist" \
+            -exportPath "$PWD/build/ipa" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            2>&1 | tee export.log | tail -30
+          ls -la build/ipa
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sleep-reset-ipa-${{ inputs.marketing_version }}-${{ env.BUILD_NUMBER }}
+          path: ios/build/ipa/*.ipa
+          if-no-files-found: error
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            ios/archive.log
+            ios/export.log
+          if-no-files-found: ignore
