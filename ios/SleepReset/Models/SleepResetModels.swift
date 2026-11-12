@@ -17,7 +17,6 @@ nonisolated enum SleepResetStep: Hashable {
     case motivation
     case analyzing
     case result
-    case reviewPrompt
     case paywall
     case dashboard
 }

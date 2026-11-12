@@ -46,8 +46,6 @@ struct SleepResetFlowView: View {
                                 SleepAnalyzingView(viewModel: viewModel)
                             case .result:
                                 SleepResultView(viewModel: viewModel)
-                            case .reviewPrompt:
-                                SleepReviewPromptView(viewModel: viewModel)
                             case .paywall:
                                 SleepPaywallView(viewModel: viewModel)
                             case .dashboard:
@@ -739,76 +737,6 @@ private struct SleepResultView: View {
         }
         .toolbar(.hidden, for: .navigationBar)
         .navigationBarBackButtonHidden(true)
-    }
-}
-
-private struct SleepReviewPromptView: View {
-    let viewModel: SleepResetViewModel
-    @State private var reviewRequestTrigger: Bool = false
-
-    var body: some View {
-        ZStack {
-            SleepBackdropView(variant: .dawn)
-
-            VStack(alignment: .leading, spacing: 18) {
-                Spacer()
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Give us a rating")
-                        .font(.system(.largeTitle, design: .default, weight: .bold))
-                        .foregroundStyle(.white)
-
-                    Text("How are you enjoying Sleep Reset so far? A quick rating helps us keep improving your nightly reset experience.")
-                        .font(.title3)
-                        .foregroundStyle(.white.opacity(0.72))
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                VStack(alignment: .leading, spacing: 14) {
-                    SleepTimelineRow(icon: "star.bubble.fill", title: "Quick favor", subtitle: "The App Store rating prompt should appear automatically on this screen.")
-                    SleepTimelineRow(icon: "checkmark.seal.fill", title: "Your plan is ready", subtitle: "After rating, continue to unlock the reset plan prepared from your answers.")
-                }
-                .padding(20)
-                .background(.white.opacity(0.08), in: .rect(cornerRadius: 28))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 28)
-                        .strokeBorder(.white.opacity(0.10), lineWidth: 1)
-                }
-
-                Spacer()
-
-                Button("Continue") {
-                    viewModel.continueFromReviewPrompt()
-                }
-                .buttonStyle(SleepPrimaryButtonStyle())
-            }
-            .padding(.horizontal, 22)
-            .padding(.top, 18)
-            .padding(.bottom, 20)
-        }
-        .toolbar(.hidden, for: .navigationBar)
-        .navigationBarBackButtonHidden(true)
-        .task {
-            guard viewModel.shouldRequestReviewPrompt() else { return }
-            do {
-                try await Task.sleep(for: .milliseconds(450))
-            } catch {
-                return
-            }
-
-            requestNativeReviewPrompt()
-            reviewRequestTrigger.toggle()
-        }
-        .sensoryFeedback(.impact, trigger: reviewRequestTrigger)
-    }
-
-    private func requestNativeReviewPrompt() {
-        guard let scene = UIApplication.shared.connectedScenes
-            .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene else {
-            return
-        }
-
-        SKStoreReviewController.requestReview(in: scene)
     }
 }
 
